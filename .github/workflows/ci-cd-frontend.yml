@@ -1,7 +1,6 @@
 name: CI/CD Pipeline for Frontend
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - prod

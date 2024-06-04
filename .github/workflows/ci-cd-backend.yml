@@ -1,7 +1,6 @@
 name: CI/CD Pipeline for Backend
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - prod
