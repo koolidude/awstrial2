@@ -4,7 +4,7 @@ on:
   workflow_dispatch: # This allows you to manually trigger the workflow from the GitHub Actions UI
     inputs:
       branch_name:
-        description: 'Branch name to destroy resources for'
+        description: destroy
         required: true
 
 jobs:
