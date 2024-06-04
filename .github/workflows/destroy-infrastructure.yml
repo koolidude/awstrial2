@@ -1,11 +1,10 @@
 name: Destroy AWS Infrastructure
 
 on:
-  workflow_dispatch: # This allows you to manually trigger the workflow from the GitHub Actions UI
-    inputs:
-      branch_name:
-        description: destroy
-        required: true
+  workflow_dispatch:
+  push:
+    branches:
+      - destroy
 
 jobs:
   destroy:
