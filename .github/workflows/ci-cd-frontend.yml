@@ -1,6 +1,7 @@
 name: CI/CD Pipeline for Frontend
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - prod
@@ -57,7 +58,4 @@ jobs:
       - name: Invalidate CloudFront cache
         run: |
           aws cloudfront create-invalidation --distribution-id YOUR_DISTRIBUTION_ID --paths "/*"
-
-
-
-          
+   
