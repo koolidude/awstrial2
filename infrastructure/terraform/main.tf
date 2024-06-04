@@ -7,6 +7,33 @@ variable "branch_name" {
   type        = string
 }
 
+resource "aws_vpc" "netflix_clone_vpc" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "netflix_clone_subnet" {
+  vpc_id     = aws_vpc.netflix_clone_vpc.id
+  cidr_block = "10.0.1.0/24"
+}
+
+resource "aws_security_group" "netflix_clone_sg" {
+  vpc_id = aws_vpc.netflix_clone_vpc.id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 resource "aws_ecr_repository" "netflix_clone" {
   name = "group-3-ecr-repo-${var.branch_name}"
 }
@@ -45,34 +72,7 @@ resource "aws_ecs_service" "netflix_clone_service" {
   desired_count   = 1
   launch_type     = "FARGATE"
   network_configuration {
-    subnets         = [aws_subnet.default.id]
-    security_groups = [aws_security_group.default.id]
-  }
-}
-
-resource "aws_vpc" "netflix_clone_vpc" {
-  cidr_block = "10.0.0.0/16"
-}
-
-resource "aws_subnet" "netflix_clone_subnet" {
-  vpc_id     = aws_vpc.netflix_clone_vpc.id
-  cidr_block = "10.0.1.0/24"
-}
-
-resource "aws_security_group" "netflix_clone_sg" {
-  vpc_id = aws_vpc.netflix_clone_vpc.id
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    subnets         = [aws_subnet.netflix_clone_subnet.id]
+    security_groups = [aws_security_group.netflix_clone_sg.id]
   }
 }
