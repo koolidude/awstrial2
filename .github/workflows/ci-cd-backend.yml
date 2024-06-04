@@ -61,8 +61,8 @@ jobs:
         run: |
           cd infrastructure/terraform
           terraform init \
-          -backend-config="bucket=group-3-terraform-state-${{ github.ref_name }}" \
-          -backend-config="key=group-3-terraform-state-${{ github.ref_name }}/terraform.tfstate" \
+          -backend-config="bucket=group-3-terraform-state" \
+          -backend-config="key=group-3-terraform-state/terraform.tfstate" \
           -backend-config="region=us-east-1"
           terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}"
 
