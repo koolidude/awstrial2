@@ -1,0 +1,62 @@
+name: CI/CD Pipeline for Backend
+
+on:
+  push:
+    branches:
+      - prod
+      - uat
+      - dev
+      - feature/*
+    paths:
+      - 'backend/**'
+      - 'infrastructure/terraform/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/src/requirements.txt
+
+      - name: Run tests
+        env:
+          PYTHONPATH: backend/src
+        run: python -m unittest discover -s backend/tests
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Deploy infrastructure
+        run: |
+          cd infrastructure/terraform
+          terraform init
+          terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}"
+
+      - name: Build and push Docker image
+        run: |
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+          docker build -t netflix_clone_backend .
+          docker tag netflix_clone_backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
+        working-directory: backend/src
+
+      - name: Update ECS service
+        run: |
+          aws ecs update-service --cluster group-3-ecs-cluster-${{ github.ref_name }} --service group-3-ecs-service-${{ github.ref_name }} --force-new-deployment
+        
+    
