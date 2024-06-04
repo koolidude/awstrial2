@@ -1,5 +1,6 @@
 import unittest
 from src.main import app
+from src.config import Config
 
 class MainTestCase(unittest.TestCase):
     def setUp(self):

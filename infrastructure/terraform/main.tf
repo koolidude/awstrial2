@@ -2,11 +2,6 @@ provider "aws" {
   region = "us-east-1"
 }
 
-variable "branch_name" {
-  description = "The branch name to include in the resource names"
-  type        = string
-}
-
 resource "aws_ecr_repository" "netflix_clone" {
   name = "Group-3-ecr-repo-${var.branch_name}"
 }
@@ -51,7 +46,6 @@ resource "aws_ecs_service" "netflix_clone_service" {
 }
 
 resource "aws_subnet" "default" {
-  # Provide your VPC ID here
   vpc_id     = "YOUR_VPC_ID"
   cidr_block = "10.0.1.0/24"
 }

@@ -1,12 +1,3 @@
-provider "aws" {
-  region = "us-east-1"
-}
-
-variable "branch_name" {
-  description = "The branch name to include in the resource names"
-  type        = string
-}
-
 resource "aws_s3_bucket" "frontend" {
   bucket = "group-3-frontend-${var.branch_name}"
   acl    = "public-read"
