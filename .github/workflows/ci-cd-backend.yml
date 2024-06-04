@@ -10,7 +10,7 @@ on:
     paths:
       - 'backend/**'
       - 'infrastructure/terraform/**'
-  
+
   pull_request:
     types: [closed]
     branches:
@@ -39,8 +39,7 @@ jobs:
       - name: Run tests
         env:
           PYTHONPATH: ${{ github.workspace }}/backend
-        run: |
-          python -m unittest discover -s backend/tests
+        run: python -m unittest discover -s backend/tests
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
