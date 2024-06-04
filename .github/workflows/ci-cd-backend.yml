@@ -60,3 +60,5 @@ jobs:
       - name: Update ECS service
         run: |
           aws ecs update-service --cluster group-3-ecs-cluster-${{ github.ref_name }} --service group-3-ecs-service-${{ github.ref_name }} --force-new-deployment
+
+          
