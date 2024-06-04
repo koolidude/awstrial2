@@ -51,7 +51,6 @@ resource "aws_ecs_service" "netflix_clone_service" {
 }
 
 resource "aws_subnet" "default" {
-  # Provide your VPC ID here
   vpc_id     = "YOUR_VPC_ID"
   cidr_block = "10.0.1.0/24"
 }
