@@ -31,7 +31,7 @@ jobs:
 
       - name: Run tests
         env:
-          PYTHONPATH: backend/src
+          PYTHONPATH: ${{ github.workspace }}/backend/src
         run: python -m unittest discover -s backend/tests
 
       - name: Configure AWS credentials
@@ -58,5 +58,3 @@ jobs:
       - name: Update ECS service
         run: |
           aws ecs update-service --cluster group-3-ecs-cluster-${{ github.ref_name }} --service group-3-ecs-service-${{ github.ref_name }} --force-new-deployment
-        
-    
