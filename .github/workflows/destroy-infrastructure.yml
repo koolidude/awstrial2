@@ -33,3 +33,6 @@ jobs:
           cd infrastructure/terraform
           terraform init
           terraform destroy -auto-approve -var="branch_name=${{ github.event.inputs.branch_name }}"
+
+         
+          
