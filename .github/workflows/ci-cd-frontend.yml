@@ -11,6 +11,11 @@ on:
       - 'frontend/**'
       - 'infrastructure/terraform/**'
 
+  pull_request:
+    types: [closed]
+    branches:
+      - dev
+
 jobs:
   build:
     runs-on: ubuntu-latest
