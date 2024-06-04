@@ -39,7 +39,6 @@ jobs:
       - name: List contents of the src directory
         run: |
           ls -l ${{ github.workspace }}
-          ls -l /home/runner/work/awstrial2/
 
       - name: Run tests
         env:
