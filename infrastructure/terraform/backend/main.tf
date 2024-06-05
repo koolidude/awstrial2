@@ -47,7 +47,7 @@ resource "aws_iam_role" "ecs_task_execution_role" {
 }
 
 resource "aws_iam_policy" "ecr_access_policy" {
-  name        = "Group3ECRAccessPolicy"
+  name        = "Group-3ECRAccessPolicy"
   description = "Policy to allow ECR access for ECS tasks"
   policy      = jsonencode({
     Version = "2012-10-17",
