@@ -7,7 +7,7 @@ on:
       - uat
       - dev
       - feature/*
-      - feature-*
+      - feature-shukri
     paths:
       - 'backend/**'
       - 'infrastructure/terraform/backend/**'
