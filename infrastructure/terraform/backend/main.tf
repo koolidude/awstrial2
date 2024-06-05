@@ -5,26 +5,51 @@ provider "aws" {
 # VPC
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
-
   enable_dns_support   = true
   enable_dns_hostnames = true
-
-  tags = {
+    tags = {
     Name = "group-3-netflix-clone-vpc-${var.branch_name}"
   }
 }
 
-# Subnets
+# Internet Gateway
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+}
+
+# Route Table
+resource "aws_route_table" "main" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+}
+
+# Subnet 1
 resource "aws_subnet" "main1" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "10.0.1.0/24"
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.1.0/24"
   availability_zone = "us-east-1a"
 }
 
+# Subnet 2
 resource "aws_subnet" "main2" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "10.0.2.0/24"
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.2.0/24"
   availability_zone = "us-east-1b"
+}
+
+# Associate Subnets with Route Table
+resource "aws_route_table_association" "main1" {
+  subnet_id      = aws_subnet.main1.id
+  route_table_id = aws_route_table.main.id
+}
+
+resource "aws_route_table_association" "main2" {
+  subnet_id      = aws_subnet.main2.id
+  route_table_id = aws_route_table.main.id
 }
 
 # Security Group
@@ -189,4 +214,3 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
   security_group_ids = [aws_security_group.main.id]
   vpc_endpoint_type = "Interface"
 }
-
