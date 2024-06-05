@@ -53,13 +53,13 @@ jobs:
 
       - name: Deploy infrastructure
         run: |
-          cd infrastructure/terraform
+          cd infrastructure/terraform/frontend
           terraform init
           terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}" || terraform refresh -var="branch_name=${{ github.ref_name }}"
 
       - name: Sync S3 bucket
         run: |
-          aws s3 sync frontend s3://group-3-frontend-${{ github.ref_name }} --delete
+          aws s3 sync frontend/build s3://group-3-frontend-${{ github.ref_name }} --delete
         working-directory: frontend
 
       - name: Invalidate CloudFront cache
