@@ -10,7 +10,7 @@ on:
       - feature-shukri
     paths:
       - 'frontend/**'
-      - 'infrastructure/terraform/**'
+      - 'infrastructure/terraform/frontend/**'
   pull_request:
     types: [closed]
     branches:
