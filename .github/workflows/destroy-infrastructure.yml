@@ -32,4 +32,4 @@ jobs:
             -backend-config="bucket=group-3-terraform-state" \
             -backend-config="key=group-3-terraform-state/terraform.tfstate" \
             -backend-config="region=us-east-1"
-          terraform destroy -auto-approve -var="branch_name=${{ github.ref_name }}"
+          terraform destroy -auto-approve -var="branch_name=${{ github.ref_name }}" || terraform refresh -var="branch_name=${{ github.ref_name }}"
