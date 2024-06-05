@@ -6,19 +6,25 @@ provider "aws" {
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+
   tags = {
     Name = "group-3-netflix-clone-vpc-${var.branch_name}"
   }
 }
 
-# Subnet
-resource "aws_subnet" "main" {
+# Subnets
+resource "aws_subnet" "main1" {
   vpc_id     = aws_vpc.main.id
   cidr_block = "10.0.1.0/24"
+  availability_zone = "us-east-1a"
+}
 
-  tags = {
-    Name = "group-3-netflix-clone-subnet-${var.branch_name}"
-  }
+resource "aws_subnet" "main2" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.2.0/24"
+  availability_zone = "us-east-1b"
 }
 
 # Security Group
@@ -46,7 +52,7 @@ resource "aws_lb" "main" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.main.id]
-  subnets            = [aws_subnet.main.id]
+  subnets            = [aws_subnet.main1.id, aws_subnet.main2.id]
 
   enable_deletion_protection = false
 }
@@ -96,6 +102,12 @@ resource "aws_iam_role" "ecs_task_execution_role" {
       }
     ]
   })
+
+  lifecycle {
+    ignore_changes = [
+      name
+    ]
+  }
 }
 
 # ECS Task Execution Policy
@@ -147,7 +159,7 @@ resource "aws_ecs_service" "netflix_clone_service" {
   desired_count   = 1
   launch_type     = "FARGATE"
   network_configuration {
-    subnets         = [aws_subnet.main.id]
+    subnets         = [aws_subnet.main1.id, aws_subnet.main2.id]
     security_groups = [aws_security_group.main.id]
   }
   load_balancer {
@@ -164,7 +176,7 @@ resource "aws_ecs_service" "netflix_clone_service" {
 resource "aws_vpc_endpoint" "ecr" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.us-east-1.ecr.api"
-  subnet_ids        = [aws_subnet.main.id]
+  subnet_ids        = [aws_subnet.main1.id, aws_subnet.main2.id]
   security_group_ids = [aws_security_group.main.id]
   vpc_endpoint_type = "Interface"
 }
@@ -173,7 +185,7 @@ resource "aws_vpc_endpoint" "ecr" {
 resource "aws_vpc_endpoint" "ecr_dkr" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.us-east-1.ecr.dkr"
-  subnet_ids        = [aws_subnet.main.id]
+  subnet_ids        = [aws_subnet.main1.id, aws_subnet.main2.id]
   security_group_ids = [aws_security_group.main.id]
   vpc_endpoint_type = "Interface"
 }
