@@ -154,3 +154,23 @@ resource "aws_ecs_service" "netflix_clone_service" {
     security_groups = [aws_security_group.netflix_clone_sg.id]
   }
 }
+
+resource "aws_vpc_endpoint" "ecr" {
+  vpc_id       = aws_vpc.main.id
+  service_name = "com.amazonaws.us-east-1.ecr.api"
+  subnet_ids   = [aws_subnet.main.id]
+
+  security_group_ids = [
+    aws_security_group.main.id
+  ]
+}
+
+resource "aws_vpc_endpoint" "ecr_dkr" {
+  vpc_id       = aws_vpc.main.id
+  service_name = "com.amazonaws.us-east-1.ecr.dkr"
+  subnet_ids   = [aws_subnet.main.id]
+
+  security_group_ids = [
+    aws_security_group.main.id
+  ]
+}

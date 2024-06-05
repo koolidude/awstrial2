@@ -69,23 +69,6 @@ jobs:
           -backend-config="region=us-east-1"
           terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}" || terraform refresh -var="branch_name=${{ github.ref_name }}"
 
-      - name: Debug Print ECR Repositories
-        run: |
-          aws ecr describe-repositories
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-
-      - name: Debug Login to ECR
-        run: |
-          #aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com || true
-
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-
       - name: Build and push Docker image
         run: |
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
@@ -97,4 +80,3 @@ jobs:
       - name: Update ECS service
         run: |
           aws ecs update-service --cluster group-3-ecs-cluster-${{ github.ref_name }} --service group-3-ecs-service-${{ github.ref_name }} --force-new-deployment
-      
