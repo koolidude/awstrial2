@@ -1,13 +1,14 @@
 name: CI/CD Pipeline for Frontend
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - prod
       - uat
       - dev
       - feature/*
-      - feature-*
+      - feature-shukri
     paths:
       - 'frontend/**'
       - 'infrastructure/terraform/frontend/**'
