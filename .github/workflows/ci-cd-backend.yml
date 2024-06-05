@@ -17,6 +17,8 @@ on:
       - prod
       - uat
       - dev
+  
+  workflow_dispatch:
 
 jobs:
   build:
