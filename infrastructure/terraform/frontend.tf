@@ -5,10 +5,6 @@ resource "aws_s3_bucket" "frontend" {
     index_document = "index.html"
     error_document = "index.html"
   }
-
-  tags = {
-    Name = "group-3-frontend-${var.branch_name}"
-  }
 }
 
 resource "aws_s3_bucket_object" "frontend" {
