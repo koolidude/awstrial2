@@ -11,13 +11,14 @@ on:
     paths:
       - 'backend/**'
       - 'infrastructure/terraform/**'
-  
   pull_request:
     types: [closed]
     branches:
       - prod
       - uat
       - dev
+  
+  workflow_dispatch:
 
 jobs:
   build:
@@ -52,7 +53,7 @@ jobs:
 
       - name: Create Terraform state S3 bucket if it does not exist
         run: |
-          aws s3api head-bucket --bucket group-3-terraform-state-${{ github.ref_name }} || aws s3api create-bucket --bucket group-3-terraform-state-${{ github.ref_name }} --region us-east-1
+          aws s3api head-bucket --bucket group-3-terraform-state || aws s3api create-bucket --bucket group-3-terraform-state --region us-east-1
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -62,8 +63,8 @@ jobs:
         run: |
           cd infrastructure/terraform
           terraform init \
-          -backend-config="bucket=group-3-terraform-state-${{ github.ref_name }}" \
-          -backend-config="key=group-3-terraform-state-${{ github.ref_name }}/terraform.tfstate" \
+          -backend-config="bucket=group-3-terraform-state" \
+          -backend-config="key=group-3-terraform-state/terraform.tfstate" \
           -backend-config="region=us-east-1"
           terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}"
 
