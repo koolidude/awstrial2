@@ -20,7 +20,7 @@ on:
       - dev
 
   workflow_dispatch:
-    
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -61,7 +61,7 @@ jobs:
 
       - name: Sync S3 bucket
         run: |
-          aws s3 sync frontend/build s3://group-3-frontend-${{ github.ref_name }} --delete
+          aws s3 sync frontend s3://group-3-frontend-${{ github.ref_name }} --delete
         working-directory: frontend
 
       - name: Invalidate CloudFront cache
