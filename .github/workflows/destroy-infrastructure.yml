@@ -20,13 +20,14 @@ jobs:
 
       - name: Destroy ECS services
         run: |
+          set -e
           CLUSTERS=$(aws ecs list-clusters | grep group-3 | awk -F/ '{print $2}' | tr -d '",')
           for CLUSTER in $CLUSTERS; do
             SERVICES=$(aws ecs list-services --cluster $CLUSTER | grep group-3 | awk -F/ '{print $2}' | tr -d '",')
             for SERVICE in $SERVICES; do
-              aws ecs delete-service --cluster $CLUSTER --service $SERVICE --force
+              aws ecs delete-service --cluster $CLUSTER --service $SERVICE --force || true
             done
-            aws ecs delete-cluster --cluster $CLUSTER
+            aws ecs delete-cluster --cluster $CLUSTER || true
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -35,9 +36,10 @@ jobs:
 
       - name: Destroy ECS task definitions
         run: |
+          set -e
           TASKS=$(aws ecs list-task-definitions | grep group-3 | awk -F/ '{print $2}' | tr -d '",')
           for TASK in $TASKS; do
-            aws ecs deregister-task-definition --task-definition $TASK
+            aws ecs deregister-task-definition --task-definition $TASK || true
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -46,7 +48,8 @@ jobs:
 
       - name: Destroy ECR repositories
         run: |
-          aws ecr describe-repositories | grep group-3 | awk -F: '{print $2}' | tr -d '", ' | xargs -I {} aws ecr delete-repository --repository-name {} --force
+          set -e
+          aws ecr describe-repositories | grep group-3 | awk -F: '{print $2}' | tr -d '", ' | xargs -I {} aws ecr delete-repository --repository-name {} --force || true
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -54,7 +57,8 @@ jobs:
 
       - name: Destroy S3 buckets
         run: |
-          aws s3 ls | grep group-3 | awk '{print $3}' | xargs -I {} aws s3 rb s3://{} --force
+          set -e
+          aws s3 ls | grep group-3 | awk '{print $3}' | xargs -I {} aws s3 rb s3://{} --force || true
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -62,9 +66,10 @@ jobs:
 
       - name: Destroy CloudFront distributions
         run: |
+          set -e
           DISTRIBUTIONS=$(aws cloudfront list-distributions | grep group-3 | awk -F: '{print $2}' | tr -d '", ' | xargs -I {})
           for DIST in $DISTRIBUTIONS; do
-            aws cloudfront delete-distribution --id $DIST
+            aws cloudfront delete-distribution --id $DIST || true
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -73,9 +78,10 @@ jobs:
 
       - name: Destroy IAM roles
         run: |
+          set -e
           ROLES=$(aws iam list-roles | grep group-3 | awk -F: '{print $2}' | tr -d '", ' | xargs -I {})
           for ROLE in $ROLES; do
-            aws iam delete-role --role-name $ROLE
+            aws iam delete-role --role-name $ROLE || true
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -84,9 +90,10 @@ jobs:
 
       - name: Destroy security groups
         run: |
+          set -e
           SG_IDS=$(aws ec2 describe-security-groups --query "SecurityGroups[?contains(GroupName, 'group-3')].GroupId" --output text)
           for SG_ID in $SG_IDS; do
-            aws ec2 delete-security-group --group-id $SG_ID
+            aws ec2 delete-security-group --group-id $SG_ID || true
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -95,9 +102,10 @@ jobs:
 
       - name: Destroy subnets
         run: |
-          SUBNET_IDS=$(aws ec2 describe-subnets --query "Subnets[?contains(Tags[?Key=='Name'].Value | [0], 'group-3')].SubnetId" --output text)
+          set -e
+          SUBNET_IDS=$(aws ec2 describe-subnets --query "Subnets[?contains(Tags[?Key=='Name'].Value, 'group-3')].SubnetId" --output text)
           for SUBNET_ID in $SUBNET_IDS; do
-            aws ec2 delete-subnet --subnet-id $SUBNET_ID
+            aws ec2 delete-subnet --subnet-id $SUBNET_ID || true
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -106,9 +114,10 @@ jobs:
 
       - name: Destroy VPCs
         run: |
-          VPCS=$(aws ec2 describe-vpcs --query "Vpcs[?contains(Tags[?Key=='Name'].Value | [0], 'group-3')].VpcId" --output text)
-          for VPC in $VPCS; do
-            aws ec2 delete-vpc --vpc-id $VPC
+          set -e
+          VPC_IDS=$(aws ec2 describe-vpcs --query "Vpcs[?contains(Tags[?Key=='Name'].Value, 'group-3')].VpcId" --output text)
+          for VPC_ID in $VPC_IDS; do
+            aws ec2 delete-vpc --vpc-id $VPC_ID || true
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}

@@ -62,7 +62,7 @@ jobs:
 
       - name: Deploy infrastructure
         run: |
-          cd infrastructure/terraform
+          cd infrastructure/terraform/backend
           terraform init \
           -backend-config="bucket=group-3-terraform-state" \
           -backend-config="key=group-3-terraform-state/terraform.tfstate" \
