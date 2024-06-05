@@ -63,9 +63,12 @@ jobs:
 
       - name: Deploy infrastructure
         run: |
-          cd infrastructure/terraform/backend
-          terraform init -backend-config="../common/backend.tf"
-          terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}"
+          cd infrastructure/terraform
+          terraform init \
+          -backend-config="bucket=group-3-terraform-state" \
+          -backend-config="key=group-3-terraform-state/terraform.tfstate" \
+          -backend-config="region=us-east-1"
+          terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}" || terraform refresh -var="branch_name=${{ github.ref_name }}"
 
       - name: Build and push Docker image
         run: |
