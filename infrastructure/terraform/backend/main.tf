@@ -2,7 +2,8 @@ provider "aws" {
   region = "us-east-1"
 }
 
-resource "aws_vpc" "netflix_clone_vpc" {
+# Declare the VPC resource
+resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 
   tags = {
@@ -10,8 +11,9 @@ resource "aws_vpc" "netflix_clone_vpc" {
   }
 }
 
-resource "aws_subnet" "netflix_clone_subnet" {
-  vpc_id     = aws_vpc.netflix_clone_vpc.id
+# Declare the subnet resource
+resource "aws_subnet" "main" {
+  vpc_id     = aws_vpc.main.id
   cidr_block = "10.0.1.0/24"
 
   tags = {
@@ -19,8 +21,9 @@ resource "aws_subnet" "netflix_clone_subnet" {
   }
 }
 
-resource "aws_security_group" "netflix_clone_sg" {
-  vpc_id = aws_vpc.netflix_clone_vpc.id
+# Declare the security group resource
+resource "aws_security_group" "main" {
+  vpc_id = aws_vpc.main.id
 
   ingress {
     from_port   = 80
@@ -35,21 +38,36 @@ resource "aws_security_group" "netflix_clone_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = {
-    Name = "group-3-netflix-clone-sg-${var.branch_name}"
-  }
 }
 
+# VPC Endpoint for ECR
+resource "aws_vpc_endpoint" "ecr" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.us-east-1.ecr.api"
+  subnet_ids        = [aws_subnet.main.id]
+  security_group_ids = [aws_security_group.main.id]
+  vpc_endpoint_type = "Interface"
+}
+
+# VPC Endpoint for ECR Docker
+resource "aws_vpc_endpoint" "ecr_dkr" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.us-east-1.ecr.dkr"
+  subnet_ids        = [aws_subnet.main.id]
+  security_group_ids = [aws_security_group.main.id]
+  vpc_endpoint_type = "Interface"
+}
+
+# IAM role for ECS task execution
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "group-3-ecs-task-execution-role-${var.branch_name}"
 
   assume_role_policy = jsonencode({
-    Version = "2012-10-17",
+    Version = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRole",
-        Effect = "Allow",
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
         Principal = {
           Service = "ecs-tasks.amazonaws.com"
         }
@@ -58,67 +76,23 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   })
 }
 
-resource "aws_iam_policy" "ecr_access_policy" {
-  name        = "Group3ECRAccessPolicy"
-  description = "Policy to allow ECR access"
-  policy      = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Action = [
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:PutImage",
-          "ecr:InitiateLayerUpload",
-          "ecr:UploadLayerPart",
-          "ecr:CompleteLayerUpload",
-          "ecr:GetAuthorizationToken"
-        ],
-        Resource = "*"
-      },
-      {
-        Effect = "Allow",
-        Action = [
-          "ecr:DescribeRepositories",
-          "ecr:CreateRepository",
-          "ecr:DeleteRepository",
-          "ecr:ListImages",
-          "ecr:BatchDeleteImage"
-        ],
-        Resource = "*"
-      },
-      {
-        Effect = "Allow",
-        Action = [
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
-        ],
-        Resource = "*"
-      }
-    ]
-  })
-}
-
+# IAM policy attachment for ECS task execution role
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy" {
   role       = aws_iam_role.ecs_task_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-resource "aws_iam_role_policy_attachment" "ecr_access_policy_attachment" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = aws_iam_policy.ecr_access_policy.arn
-}
-
+# ECR repository for the application
 resource "aws_ecr_repository" "netflix_clone" {
   name = "group-3-ecr-repo-${var.branch_name}"
 }
 
+# ECS cluster
 resource "aws_ecs_cluster" "netflix_clone_cluster" {
   name = "group-3-ecs-cluster-${var.branch_name}"
 }
 
+# ECS task definition
 resource "aws_ecs_task_definition" "netflix_clone_task" {
   family                   = "group-3-ecs-task-${var.branch_name}"
   network_mode             = "awsvpc"
@@ -143,6 +117,7 @@ resource "aws_ecs_task_definition" "netflix_clone_task" {
   ])
 }
 
+# ECS service
 resource "aws_ecs_service" "netflix_clone_service" {
   name            = "group-3-ecs-service-${var.branch_name}"
   cluster         = aws_ecs_cluster.netflix_clone_cluster.id
@@ -150,27 +125,8 @@ resource "aws_ecs_service" "netflix_clone_service" {
   desired_count   = 1
   launch_type     = "FARGATE"
   network_configuration {
-    subnets         = [aws_subnet.netflix_clone_subnet.id]
-    security_groups = [aws_security_group.netflix_clone_sg.id]
+    subnets         = [aws_subnet.main.id]
+    security_groups = [aws_security_group.main.id]
   }
 }
 
-resource "aws_vpc_endpoint" "ecr" {
-  vpc_id       = aws_vpc.main.id
-  service_name = "com.amazonaws.us-east-1.ecr.api"
-  subnet_ids   = [aws_subnet.main.id]
-
-  security_group_ids = [
-    aws_security_group.main.id
-  ]
-}
-
-resource "aws_vpc_endpoint" "ecr_dkr" {
-  vpc_id       = aws_vpc.main.id
-  service_name = "com.amazonaws.us-east-1.ecr.dkr"
-  subnet_ids   = [aws_subnet.main.id]
-
-  security_group_ids = [
-    aws_security_group.main.id
-  ]
-}
