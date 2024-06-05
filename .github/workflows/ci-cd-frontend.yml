@@ -11,7 +11,6 @@ on:
     paths:
       - 'frontend/**'
       - 'infrastructure/terraform/**'
-
   pull_request:
     types: [closed]
     branches:
