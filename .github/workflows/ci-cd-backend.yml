@@ -7,7 +7,7 @@ on:
       - uat
       - dev
       - feature/*
-      - feature-*
+      - feature-shukri
     paths:
       - 'backend/**'
       - 'infrastructure/terraform/**'
@@ -17,7 +17,6 @@ on:
       - prod
       - uat
       - dev
-  
   workflow_dispatch:
 
 jobs:
@@ -53,7 +52,9 @@ jobs:
 
       - name: Create Terraform state S3 bucket if it does not exist
         run: |
-          aws s3api head-bucket --bucket group-3-terraform-state || aws s3api create-bucket --bucket group-3-terraform-state --region us-east-1
+          if ! aws s3api head-bucket --bucket group-3-terraform-state 2>/dev/null; then
+            aws s3api create-bucket --bucket group-3-terraform-state --region us-east-1
+          fi
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -63,9 +64,9 @@ jobs:
         run: |
           cd infrastructure/terraform
           terraform init \
-          -backend-config="bucket=group-3-terraform-state" \
-          -backend-config="key=group-3-terraform-state/terraform.tfstate" \
-          -backend-config="region=us-east-1"
+            -backend-config="bucket=group-3-terraform-state" \
+            -backend-config="key=group-3-terraform-state/terraform.tfstate" \
+            -backend-config="region=us-east-1"
           terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}"
 
       - name: Build and push Docker image
