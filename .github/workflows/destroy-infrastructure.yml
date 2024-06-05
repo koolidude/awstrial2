@@ -100,18 +100,6 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-east-1
 
-      - name: Destroy subnets
-        run: |
-          set -e
-          SUBNET_IDS=$(aws ec2 describe-subnets --query "Subnets[?contains(Tags[?Key=='Name'].Value, 'group-3')].SubnetId" --output text)
-          for SUBNET_ID in $SUBNET_IDS; do
-            aws ec2 delete-subnet --subnet-id $SUBNET_ID || true
-          done
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-
       - name: Destroy VPCs
         run: |
           set -e
