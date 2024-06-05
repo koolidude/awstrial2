@@ -7,19 +7,19 @@ on:
       - uat
       - dev
       - feature/*
-      - feature-shukri
+      - feature-*
     paths:
       - 'frontend/**'
-      - 'infrastructure/terraform/**'
-
+      - 'infrastructure/terraform/frontend/**'
   pull_request:
     types: [closed]
     branches:
       - prod
       - uat
       - dev
+  
   workflow_dispatch:
-    
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -54,8 +54,8 @@ jobs:
 
       - name: Deploy infrastructure
         run: |
-          cd infrastructure/terraform
-          terraform init
+          cd infrastructure/terraform/frontend
+          terraform init -backend-config="../common/backend.tf"
           terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}"
 
       - name: Sync S3 bucket
