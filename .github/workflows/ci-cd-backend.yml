@@ -62,25 +62,19 @@ jobs:
 
       - name: Deploy infrastructure
         run: |
-          cd infrastructure/terraform/backend
+          cd infrastructure/terraform
           terraform init \
           -backend-config="bucket=group-3-terraform-state" \
           -backend-config="key=group-3-terraform-state/terraform.tfstate" \
           -backend-config="region=us-east-1"
           terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}" || terraform refresh -var="branch_name=${{ github.ref_name }}"
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-  
       - name: Build and push Docker image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: group-3-ecr-repo-${{ github.ref_name }}
-          IMAGE_TAG: latest
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+          docker build -t netflix_clone_backend .
+          docker tag netflix_clone_backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
         working-directory: backend/src
 
       - name: Update ECS service

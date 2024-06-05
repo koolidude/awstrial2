@@ -18,20 +18,99 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Destroy infrastructure Frontend
+      - name: Destroy ECS services
         run: |
-          cd infrastructure/terraform/frontend
-          terraform init \
-            -backend-config="bucket=group-3-terraform-state" \
-            -backend-config="key=group-3-terraform-state/terraform.tfstate" \
-            -backend-config="region=us-east-1"
-          terraform destroy -auto-approve -var="branch_name=${{ github.ref_name }}" || terraform refresh -var="branch_name=${{ github.ref_name }}"
+          CLUSTERS=$(aws ecs list-clusters | grep group-3 | awk -F/ '{print $2}' | tr -d '",')
+          for CLUSTER in $CLUSTERS; do
+            SERVICES=$(aws ecs list-services --cluster $CLUSTER | grep group-3 | awk -F/ '{print $2}' | tr -d '",')
+            for SERVICE in $SERVICES; do
+              aws ecs delete-service --cluster $CLUSTER --service $SERVICE --force
+            done
+            aws ecs delete-cluster --cluster $CLUSTER
+          done
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
 
-      - name: Destroy infrastructure Backend
+      - name: Destroy ECS task definitions
         run: |
-          cd infrastructure/terraform/backend
-          terraform init \
-            -backend-config="bucket=group-3-terraform-state" \
-            -backend-config="key=group-3-terraform-state/terraform.tfstate" \
-            -backend-config="region=us-east-1"
-          terraform destroy -auto-approve -var="branch_name=${{ github.ref_name }}" || terraform refresh -var="branch_name=${{ github.ref_name }}"
+          TASKS=$(aws ecs list-task-definitions | grep group-3 | awk -F/ '{print $2}' | tr -d '",')
+          for TASK in $TASKS; do
+            aws ecs deregister-task-definition --task-definition $TASK
+          done
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+
+      - name: Destroy ECR repositories
+        run: |
+          aws ecr describe-repositories | grep group-3 | awk -F: '{print $2}' | tr -d '", ' | xargs -I {} aws ecr delete-repository --repository-name {} --force
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+
+      - name: Destroy S3 buckets
+        run: |
+          aws s3 ls | grep group-3 | awk '{print $3}' | xargs -I {} aws s3 rb s3://{} --force
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+
+      - name: Destroy CloudFront distributions
+        run: |
+          DISTRIBUTIONS=$(aws cloudfront list-distributions | grep group-3 | awk -F: '{print $2}' | tr -d '", ' | xargs -I {})
+          for DIST in $DISTRIBUTIONS; do
+            aws cloudfront delete-distribution --id $DIST
+          done
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+
+      - name: Destroy IAM roles
+        run: |
+          ROLES=$(aws iam list-roles | grep group-3 | awk -F: '{print $2}' | tr -d '", ' | xargs -I {})
+          for ROLE in $ROLES; do
+            aws iam delete-role --role-name $ROLE
+          done
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+
+      - name: Destroy security groups
+        run: |
+          SG_IDS=$(aws ec2 describe-security-groups --query "SecurityGroups[?contains(GroupName, 'group-3')].GroupId" --output text)
+          for SG_ID in $SG_IDS; do
+            aws ec2 delete-security-group --group-id $SG_ID
+          done
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+
+      - name: Destroy subnets
+        run: |
+          SUBNET_IDS=$(aws ec2 describe-subnets --query "Subnets[?contains(Tags[?Key=='Name'].Value | [0], 'group-3')].SubnetId" --output text)
+          for SUBNET_ID in $SUBNET_IDS; do
+            aws ec2 delete-subnet --subnet-id $SUBNET_ID
+          done
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+
+      - name: Destroy VPCs
+        run: |
+          VPCS=$(aws ec2 describe-vpcs --query "Vpcs[?contains(Tags[?Key=='Name'].Value | [0], 'group-3')].VpcId" --output text)
+          for VPC in $VPCS; do
+            aws ec2 delete-vpc --vpc-id $VPC
+          done
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
