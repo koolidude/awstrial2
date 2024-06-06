@@ -7,9 +7,6 @@ WORKDIR /app
 # Copy the current directory contents into the container at /app
 COPY . /app
 
-# Set the PYTHONPATH
-ENV PYTHONPATH=/app/src
-
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r src/requirements.txt
 
@@ -20,4 +17,4 @@ EXPOSE 80
 ENV NAME World
 
 # Run main.py when the container launches
-CMD ["python", "main.py"]
+CMD ["python", "src/main.py"]
