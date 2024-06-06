@@ -2,10 +2,15 @@ provider "aws" {
   region = "us-east-1"
 }
 
+variable "branch_name" {
+  description = "The branch name to include in the resource names"
+  type        = string
+}
+
 # VPC
 resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
-  enable_dns_support = true
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
   enable_dns_hostnames = true
   tags = {
     Name = "group-3-vpc-${var.branch_name}"
@@ -15,58 +20,97 @@ resource "aws_vpc" "main" {
 # Internet Gateway
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
-
   tags = {
-    Name = "group-3-igws-${var.branch_name}"
+    Name = "group-3-igw-${var.branch_name}"
   }
 }
 
-# Route Table
-resource "aws_route_table" "main" {
+# NAT Gateway
+resource "aws_eip" "nat" {
+  vpc = true
+}
+
+resource "aws_nat_gateway" "main" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.public.id
+  tags = {
+    Name = "group-3-nat-${var.branch_name}"
+  }
+}
+
+# Public Subnet
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "us-east-1a"
+  map_public_ip_on_launch = true
+  tags = {
+    Name = "group-3-public-subnet-${var.branch_name}"
+  }
+}
+
+# Private Subnet 1
+resource "aws_subnet" "private1" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "us-east-1b"
+  tags = {
+    Name = "group-3-private-subnet1-${var.branch_name}"
+  }
+}
+
+# Private Subnet 2
+resource "aws_subnet" "private2" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.3.0/24"
+  availability_zone = "us-east-1c"
+  tags = {
+    Name = "group-3-private-subnet2-${var.branch_name}"
+  }
+}
+
+# Public Route Table
+resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.main.id
   }
-  tags = {
-    Name = "group-3-rt-${var.branch_name}"
-  }
 
-}
-
-# Subnet 1
-resource "aws_subnet" "main1" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "us-east-1a"
-  map_public_ip_on_launch = true
   tags = {
-    Name = "group-3-sbnt1-${var.branch_name}"
+    Name = "group-3-public-rt-${var.branch_name}"
   }
 }
 
-# Subnet 2
-resource "aws_subnet" "main2" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.2.0/24"
-  availability_zone = "us-east-1b"
-  map_public_ip_on_launch = true
-  tags = {
-    Name = "group-3-sbnt2-${var.branch_name}"
+# Private Route Table
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.main.id
   }
 
+  tags = {
+    Name = "group-3-private-rt-${var.branch_name}"
+  }
 }
 
-# Associate Subnets with Route Table
-resource "aws_route_table_association" "main1" {
-  subnet_id      = aws_subnet.main1.id
-  route_table_id = aws_route_table.main.id
+# Associate Subnets with Route Tables
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
 }
 
-resource "aws_route_table_association" "main2" {
-  subnet_id      = aws_subnet.main2.id
-  route_table_id = aws_route_table.main.id
+resource "aws_route_table_association" "private1" {
+  subnet_id      = aws_subnet.private1.id
+  route_table_id = aws_route_table.private.id
+}
+
+resource "aws_route_table_association" "private2" {
+  subnet_id      = aws_subnet.private2.id
+  route_table_id = aws_route_table.private.id
 }
 
 # Security Group
@@ -107,7 +151,7 @@ resource "aws_lb" "main" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.main.id]
-  subnets            = [aws_subnet.main1.id, aws_subnet.main2.id]
+  subnets            = [aws_subnet.public.id]
 
   enable_deletion_protection = false
 }
@@ -214,7 +258,7 @@ resource "aws_ecs_service" "netflix_clone_service" {
   desired_count   = 1
   launch_type     = "FARGATE"
   network_configuration {
-    subnets         = [aws_subnet.main1.id, aws_subnet.main2.id]
+    subnets         = [aws_subnet.private1.id, aws_subnet.private2.id]
     security_groups = [aws_security_group.main.id]
   }
   load_balancer {
@@ -231,7 +275,7 @@ resource "aws_ecs_service" "netflix_clone_service" {
 resource "aws_vpc_endpoint" "ecr" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.us-east-1.ecr.api"
-  subnet_ids        = [aws_subnet.main1.id, aws_subnet.main2.id]
+  subnet_ids        = [aws_subnet.private1.id, aws_subnet.private2.id]
   security_group_ids = [aws_security_group.main.id]
   vpc_endpoint_type = "Interface"
 
@@ -244,7 +288,7 @@ resource "aws_vpc_endpoint" "ecr" {
 resource "aws_vpc_endpoint" "ecr_dkr" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.us-east-1.ecr.dkr"
-  subnet_ids        = [aws_subnet.main1.id, aws_subnet.main2.id]
+  subnet_ids        = [aws_subnet.private1.id, aws_subnet.private2.id]
   security_group_ids = [aws_security_group.main.id]
   vpc_endpoint_type = "Interface"
 
