@@ -20,4 +20,4 @@ EXPOSE 80
 ENV NAME World
 
 # Run main.py when the container launches
-CMD ["python", "src/main.py"]
+CMD ["python", "main.py"]
