@@ -5,16 +5,20 @@ provider "aws" {
 # VPC
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
-  enable_dns_support   = true
+  enable_dns_support = true
   enable_dns_hostnames = true
-    tags = {
-    Name = "group-3-netflix-clone-vpc-${var.branch_name}"
+  tags = {
+    Name = "group-3-vpc-${var.branch_name}"
   }
 }
 
 # Internet Gateway
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "group-3-igws-${var.branch_name}"
+  }
 }
 
 # Route Table
@@ -25,6 +29,10 @@ resource "aws_route_table" "main" {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.main.id
   }
+  tags = {
+    Name = "group-3-rt-${var.branch_name}"
+  }
+
 }
 
 # Subnet 1
@@ -32,6 +40,10 @@ resource "aws_subnet" "main1" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.1.0/24"
   availability_zone = "us-east-1a"
+
+  tags = {
+    Name = "group-3-sbnt1-${var.branch_name}"
+  }
 }
 
 # Subnet 2
@@ -39,6 +51,11 @@ resource "aws_subnet" "main2" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.2.0/24"
   availability_zone = "us-east-1b"
+
+  tags = {
+    Name = "group-3-sbnt2-${var.branch_name}"
+  }
+
 }
 
 # Associate Subnets with Route Table
@@ -54,11 +71,20 @@ resource "aws_route_table_association" "main2" {
 
 # Security Group
 resource "aws_security_group" "main" {
-  vpc_id = aws_vpc.main.id
+  name        = "group-3-sg-${var.branch_name}"
+  description = "Security group for group-3-${var.branch_name}"
+  vpc_id      = aws_vpc.main.id
 
   ingress {
     from_port   = 80
     to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -68,6 +94,10 @@ resource "aws_security_group" "main" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "group-3-sg-${var.branch_name}"
   }
 }
 
@@ -204,6 +234,10 @@ resource "aws_vpc_endpoint" "ecr" {
   subnet_ids        = [aws_subnet.main1.id, aws_subnet.main2.id]
   security_group_ids = [aws_security_group.main.id]
   vpc_endpoint_type = "Interface"
+
+  tags = {
+    Name = "group-3-vpcepecr-${var.branch_name}"
+  }
 }
 
 # VPC Endpoint for ECR Docker
@@ -213,4 +247,8 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
   subnet_ids        = [aws_subnet.main1.id, aws_subnet.main2.id]
   security_group_ids = [aws_security_group.main.id]
   vpc_endpoint_type = "Interface"
+
+  tags = {
+    Name = "group-3-vpcepecrdkr-${var.branch_name}"
+  }
 }
