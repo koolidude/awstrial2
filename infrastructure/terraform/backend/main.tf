@@ -40,7 +40,7 @@ resource "aws_subnet" "main1" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.1.0/24"
   availability_zone = "us-east-1a"
-
+  map_public_ip_on_launch = true
   tags = {
     Name = "group-3-sbnt1-${var.branch_name}"
   }
@@ -51,7 +51,7 @@ resource "aws_subnet" "main2" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.2.0/24"
   availability_zone = "us-east-1b"
-
+  map_public_ip_on_launch = true
   tags = {
     Name = "group-3-sbnt2-${var.branch_name}"
   }
@@ -236,7 +236,7 @@ resource "aws_vpc_endpoint" "ecr" {
   vpc_endpoint_type = "Interface"
 
   tags = {
-    Name = "group-3-vpcepecr-${var.branch_name}"
+    Name = "group-3-ep-ecr-${var.branch_name}"
   }
 }
 
@@ -249,6 +249,6 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
   vpc_endpoint_type = "Interface"
 
   tags = {
-    Name = "group-3-vpcepecrdkr-${var.branch_name}"
+    Name = "group-3-ep-ecrdkr-${var.branch_name}"
   }
 }
