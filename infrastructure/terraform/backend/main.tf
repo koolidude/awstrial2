@@ -4,8 +4,8 @@ provider "aws" {
 
 # VPC
 resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_support   = true
+  cidr_block = "10.0.0.0/16"
+  enable_dns_support = true
   enable_dns_hostnames = true
   tags = {
     Name = "group-3-vpc-${var.branch_name}"
@@ -16,96 +16,73 @@ resource "aws_vpc" "main" {
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
   tags = {
-    Name = "group-3-igw-${var.branch_name}"
+    Name = "group-3-igws-${var.branch_name}"
   }
 }
 
-# NAT Gateway
-resource "aws_eip" "nat" {
-  vpc = true
-}
-
-resource "aws_nat_gateway" "main" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public.id
+# Route Table
+resource "aws_route_table" "main" {
+  vpc_id = aws_vpc.main.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
   tags = {
-    Name = "group-3-nat-${var.branch_name}"
+    Name = "group-3-rt-${var.branch_name}"
   }
 }
 
-# Public Subnet
-resource "aws_subnet" "public" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = "us-east-1a"
+# Public Subnet 1
+resource "aws_subnet" "public1" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "us-east-1a"
   map_public_ip_on_launch = true
   tags = {
-    Name = "group-3-public-subnet-${var.branch_name}"
+    Name = "group-3-public-sbnt1-${var.branch_name}"
+  }
+}
+
+# Public Subnet 2
+resource "aws_subnet" "public2" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "us-east-1b"
+  map_public_ip_on_launch = true
+  tags = {
+    Name = "group-3-public-sbnt2-${var.branch_name}"
   }
 }
 
 # Private Subnet 1
 resource "aws_subnet" "private1" {
   vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.2.0/24"
-  availability_zone = "us-east-1b"
+  cidr_block        = "10.0.3.0/24"
+  availability_zone = "us-east-1a"
   tags = {
-    Name = "group-3-private-subnet1-${var.branch_name}"
+    Name = "group-3-private-sbnt1-${var.branch_name}"
   }
 }
 
 # Private Subnet 2
 resource "aws_subnet" "private2" {
   vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.3.0/24"
-  availability_zone = "us-east-1c"
+  cidr_block        = "10.0.4.0/24"
+  availability_zone = "us-east-1b"
   tags = {
-    Name = "group-3-private-subnet2-${var.branch_name}"
+    Name = "group-3-private-sbnt2-${var.branch_name}"
   }
 }
 
-# Public Route Table
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.main.id
-  }
-
-  tags = {
-    Name = "group-3-public-rt-${var.branch_name}"
-  }
+# Associate Subnets with Route Table
+resource "aws_route_table_association" "public1" {
+  subnet_id      = aws_subnet.public1.id
+  route_table_id = aws_route_table.main.id
 }
 
-# Private Route Table
-resource "aws_route_table" "private" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main.id
-  }
-
-  tags = {
-    Name = "group-3-private-rt-${var.branch_name}"
-  }
-}
-
-# Associate Subnets with Route Tables
-resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.public.id
-  route_table_id = aws_route_table.public.id
-}
-
-resource "aws_route_table_association" "private1" {
-  subnet_id      = aws_subnet.private1.id
-  route_table_id = aws_route_table.private.id
-}
-
-resource "aws_route_table_association" "private2" {
-  subnet_id      = aws_subnet.private2.id
-  route_table_id = aws_route_table.private.id
+resource "aws_route_table_association" "public2" {
+  subnet_id      = aws_subnet.public2.id
+  route_table_id = aws_route_table.main.id
 }
 
 # Security Group
@@ -146,7 +123,7 @@ resource "aws_lb" "main" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.main.id]
-  subnets            = [aws_subnet.public.id]
+  subnets            = [aws_subnet.public1.id, aws_subnet.public2.id]
 
   enable_deletion_protection = false
 }
@@ -291,4 +268,42 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
     Name = "group-3-ep-ecrdkr-${var.branch_name}"
   }
 }
-#test
+
+# NAT Gateway
+resource "aws_eip" "nat" {
+  vpc = true
+  tags = {
+    Name = "group-3-eip-${var.branch_name}"
+  }
+}
+
+resource "aws_nat_gateway" "nat" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.public1.id
+  tags = {
+    Name = "group-3-nat-gw-${var.branch_name}"
+  }
+}
+
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat.id
+  }
+
+  tags = {
+    Name = "group-3-private-rt-${var.branch_name}"
+  }
+}
+
+resource "aws_route_table_association" "private1" {
+  subnet_id      = aws_subnet.private1.id
+  route_table_id = aws_route_table.private.id
+}
+
+resource "aws_route_table_association" "private2" {
+  subnet_id      = aws_subnet.private2.id
+  route_table_id = aws_route_table.private.id
+}
