@@ -2,11 +2,6 @@ provider "aws" {
   region = "us-east-1"
 }
 
-variable "branch_name" {
-  description = "The branch name to include in the resource names"
-  type        = string
-}
-
 # VPC
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
