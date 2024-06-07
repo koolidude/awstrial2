@@ -250,7 +250,7 @@ resource "aws_ecs_service" "netflix_clone_service" {
   load_balancer {
     target_group_arn = aws_lb_target_group.main.arn
     container_name   = "backend"
-    container_port   = 80
+    container_port   = 5000
   }
   depends_on = [
     aws_lb_listener.main
