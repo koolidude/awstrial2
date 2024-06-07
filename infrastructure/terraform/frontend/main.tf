@@ -52,5 +52,8 @@ resource "aws_cloudfront_distribution" "frontend" {
   viewer_certificate {
     cloudfront_default_certificate = true
   }
+
+  tags = {
+    Name = "group-3-cloudfront-${var.branch_name}"
+  }
 }
-#test

@@ -7,8 +7,6 @@ on:
       - prod
       - uat
       - dev
-      - feature-*
-      - feature-shukri
     paths:
       - 'backend/**'
       - 'infrastructure/terraform/backend/**'
@@ -20,7 +18,7 @@ on:
       - dev
 
 jobs:
-  build:
+  build-backend:
     runs-on: ubuntu-latest
 
     steps:

@@ -20,7 +20,7 @@ on:
       - dev
 
 jobs:
-  build:
+  build-frontend:
     runs-on: ubuntu-latest
 
     steps:
@@ -62,6 +62,12 @@ jobs:
           aws s3 sync frontend/build s3://group-3-frontend-${{ github.ref_name }} --delete
         working-directory: frontend
 
+      - name: Fetch CloudFront Distribution ID
+        id: cloudfront
+        run: |
+          echo "::set-output name=distribution_id::$(terraform output -raw cloudfront_distribution_id)"
+        working-directory: infrastructure/terraform/frontend
+
       - name: Invalidate CloudFront cache
         run: |
-          aws cloudfront create-invalidation --distribution-id YOUR_DISTRIBUTION_ID --paths "/*"
+          aws cloudfront create-invalidation --distribution-id ${{ steps.cloudfront.outputs.distribution_id }} --paths "/*"
