@@ -92,8 +92,8 @@ resource "aws_security_group" "main" {
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = 5000
+    to_port     = 5000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -131,7 +131,7 @@ resource "aws_lb" "main" {
 # ALB Target Group
 resource "aws_lb_target_group" "main" {
   name     = "group-3-tg-${var.branch_name}"
-  port     = 80
+  port     = 5000
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
   target_type = "ip"
@@ -148,7 +148,7 @@ resource "aws_lb_target_group" "main" {
 # ALB Listener
 resource "aws_lb_listener" "main" {
   load_balancer_arn = aws_lb.main.arn
-  port              = "80"
+  port              = "5000"
   protocol          = "HTTP"
 
   default_action {
