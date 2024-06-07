@@ -7,8 +7,6 @@ on:
       - prod
       - uat
       - dev
-      - feature/*
-      - feature-shukri
     paths:
       - 'backend/**'
       - 'infrastructure/terraform/backend/**'
