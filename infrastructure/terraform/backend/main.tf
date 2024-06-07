@@ -5,60 +5,102 @@ provider "aws" {
 # VPC
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
-  enable_dns_support   = true
+  enable_dns_support = true
   enable_dns_hostnames = true
-    tags = {
-    Name = "group-3-netflix-clone-vpc-${var.branch_name}"
+  tags = {
+    Name = "group-3-vpc-${var.branch_name}"
   }
 }
 
 # Internet Gateway
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
+  tags = {
+    Name = "group-3-igws-${var.branch_name}"
+  }
 }
 
 # Route Table
 resource "aws_route_table" "main" {
   vpc_id = aws_vpc.main.id
-
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.main.id
   }
+  tags = {
+    Name = "group-3-rt-${var.branch_name}"
+  }
 }
 
-# Subnet 1
-resource "aws_subnet" "main1" {
+# Public Subnet 1
+resource "aws_subnet" "public1" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.1.0/24"
   availability_zone = "us-east-1a"
+  map_public_ip_on_launch = true
+  tags = {
+    Name = "group-3-public-sbnt1-${var.branch_name}"
+  }
 }
 
-# Subnet 2
-resource "aws_subnet" "main2" {
+# Public Subnet 2
+resource "aws_subnet" "public2" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.2.0/24"
   availability_zone = "us-east-1b"
+  map_public_ip_on_launch = true
+  tags = {
+    Name = "group-3-public-sbnt2-${var.branch_name}"
+  }
+}
+
+# Private Subnet 1
+resource "aws_subnet" "private1" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.3.0/24"
+  availability_zone = "us-east-1a"
+  tags = {
+    Name = "group-3-private-sbnt1-${var.branch_name}"
+  }
+}
+
+# Private Subnet 2
+resource "aws_subnet" "private2" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.4.0/24"
+  availability_zone = "us-east-1b"
+  tags = {
+    Name = "group-3-private-sbnt2-${var.branch_name}"
+  }
 }
 
 # Associate Subnets with Route Table
-resource "aws_route_table_association" "main1" {
-  subnet_id      = aws_subnet.main1.id
+resource "aws_route_table_association" "public1" {
+  subnet_id      = aws_subnet.public1.id
   route_table_id = aws_route_table.main.id
 }
 
-resource "aws_route_table_association" "main2" {
-  subnet_id      = aws_subnet.main2.id
+resource "aws_route_table_association" "public2" {
+  subnet_id      = aws_subnet.public2.id
   route_table_id = aws_route_table.main.id
 }
 
 # Security Group
 resource "aws_security_group" "main" {
-  vpc_id = aws_vpc.main.id
+  name        = "group-3-sg-${var.branch_name}"
+  description = "Security group for group-3-${var.branch_name}"
+  vpc_id      = aws_vpc.main.id
 
   ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = 5000
+    to_port     = 5000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -69,6 +111,10 @@ resource "aws_security_group" "main" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name = "group-3-sg-${var.branch_name}"
+  }
 }
 
 # ALB
@@ -77,7 +123,7 @@ resource "aws_lb" "main" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.main.id]
-  subnets            = [aws_subnet.main1.id, aws_subnet.main2.id]
+  subnets            = [aws_subnet.public1.id, aws_subnet.public2.id]
 
   enable_deletion_protection = false
 }
@@ -85,7 +131,7 @@ resource "aws_lb" "main" {
 # ALB Target Group
 resource "aws_lb_target_group" "main" {
   name     = "group-3-tg-${var.branch_name}"
-  port     = 80
+  port     = 5000
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
   target_type = "ip"
@@ -102,7 +148,7 @@ resource "aws_lb_target_group" "main" {
 # ALB Listener
 resource "aws_lb_listener" "main" {
   load_balancer_arn = aws_lb.main.arn
-  port              = "80"
+  port              = "5000"
   protocol          = "HTTP"
 
   default_action {
@@ -141,6 +187,12 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# ECS CloudWatch Logs Policy
+resource "aws_iam_role_policy_attachment" "ecs_cloudwatch_policy" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+}
+
 # ECR Repository
 resource "aws_ecr_repository" "netflix_clone" {
   name = "group-3-ecr-repo-${var.branch_name}"
@@ -168,10 +220,28 @@ resource "aws_ecs_task_definition" "netflix_clone_task" {
       essential = true
       portMappings = [
         {
-          containerPort = 80
-          hostPort      = 80
+          containerPort = 5000
+          hostPort      = 5000
         }
       ]
+      environment = [
+        {
+          name  = "TMDB_API_KEY"
+          value = var.tmdb_api_key
+        },
+        {
+          name  = "SECRET_KEY"
+          value = var.secret_key
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/group-3-${var.branch_name}"
+          "awslogs-region"        = "us-east-1"
+          "awslogs-stream-prefix" = "ecs"
+        }
+      }
     }
   ])
 }
@@ -184,33 +254,86 @@ resource "aws_ecs_service" "netflix_clone_service" {
   desired_count   = 1
   launch_type     = "FARGATE"
   network_configuration {
-    subnets         = [aws_subnet.main1.id, aws_subnet.main2.id]
+    subnets         = [aws_subnet.private1.id, aws_subnet.private2.id]
     security_groups = [aws_security_group.main.id]
   }
   load_balancer {
     target_group_arn = aws_lb_target_group.main.arn
     container_name   = "backend"
-    container_port   = 80
+    container_port   = 5000
   }
   depends_on = [
     aws_lb_listener.main
   ]
 }
 
+# CloudWatch Log Group
+resource "aws_cloudwatch_log_group" "ecs_log_group" {
+  name              = "/ecs/group-3-${var.branch_name}"
+  retention_in_days = 7
+}
+
 # VPC Endpoint for ECR
 resource "aws_vpc_endpoint" "ecr" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.us-east-1.ecr.api"
-  subnet_ids        = [aws_subnet.main1.id, aws_subnet.main2.id]
+  subnet_ids        = [aws_subnet.private1.id, aws_subnet.private2.id]
   security_group_ids = [aws_security_group.main.id]
   vpc_endpoint_type = "Interface"
+
+  tags = {
+    Name = "group-3-ep-ecr-${var.branch_name}"
+  }
 }
 
 # VPC Endpoint for ECR Docker
 resource "aws_vpc_endpoint" "ecr_dkr" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.us-east-1.ecr.dkr"
-  subnet_ids        = [aws_subnet.main1.id, aws_subnet.main2.id]
+  subnet_ids        = [aws_subnet.private1.id, aws_subnet.private2.id]
   security_group_ids = [aws_security_group.main.id]
   vpc_endpoint_type = "Interface"
+
+  tags = {
+    Name = "group-3-ep-ecrdkr-${var.branch_name}"
+  }
+}
+
+# NAT Gateway
+resource "aws_eip" "nat" {
+  vpc = true
+  tags = {
+    Name = "group-3-eip-${var.branch_name}"
+  }
+}
+
+resource "aws_nat_gateway" "nat" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.public1.id
+  tags = {
+    Name = "group-3-nat-gw-${var.branch_name}"
+  }
+}
+
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat.id
+  }
+
+  tags = {
+    Name = "group-3-private-rt-${var.branch_name}"
+  }
+}
+
+resource "aws_route_table_association" "private1" {
+  subnet_id      = aws_subnet.private1.id
+  route_table_id = aws_route_table.private.id
+}
+
+resource "aws_route_table_association" "private2" {
+  subnet_id      = aws_subnet.private2.id
+  route_table_id = aws_route_table.private.id
 }
