@@ -224,6 +224,16 @@ resource "aws_ecs_task_definition" "netflix_clone_task" {
           hostPort      = 5000
         }
       ]
+      environment = [
+        {
+          name  = "TMDB_API_KEY"
+          value = var.tmdb_api_key
+        },
+        {
+          name  = "SECRET_KEY"
+          value = var.secret_key
+        }
+      ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {
