@@ -139,7 +139,7 @@ resource "aws_lb" "main" {
 resource "aws_lb_target_group" "main" {
   name     = "group-3-tg-${var.branch_name}"
   port     = 5000
-  protocol = "HTTP"
+  protocol = "HTTPS"
   vpc_id   = aws_vpc.main.id
   target_type = "ip"
   health_check {
@@ -157,7 +157,7 @@ resource "aws_lb_target_group" "main" {
 resource "aws_lb_listener" "main" {
   load_balancer_arn = aws_lb.main.arn
   port              = "5000"
-  protocol          = "HTTP"
+  protocol          = "HTTPS"
 
   default_action {
     type             = "forward"
