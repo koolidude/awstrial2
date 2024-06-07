@@ -45,7 +45,7 @@ jobs:
         working-directory: frontend
 
       - name: Verify build directory
-        run: ls -la frontend/build
+        run: ls -la build
         working-directory: frontend
 
       - name: Configure AWS credentials
@@ -63,7 +63,7 @@ jobs:
 
       - name: Sync S3 bucket
         run: |
-          aws s3 sync frontend/build s3://group-3-frontend-${{ github.ref_name }} --delete
+          aws s3 sync build s3://group-3-frontend-${{ github.ref_name }} --delete
         working-directory: frontend
 
       - name: Fetch CloudFront Distribution ID
