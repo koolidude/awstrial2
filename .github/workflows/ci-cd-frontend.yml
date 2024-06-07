@@ -70,6 +70,21 @@ jobs:
           terraform init
           terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}" || terraform refresh -var="branch_name=${{ github.ref_name }}"
 
+      - name: Update S3 bucket policy
+        run: |
+          aws s3api put-bucket-policy --bucket group-3-frontend-${{ github.ref_name }} --policy '{
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "PublicReadGetObject",
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::group-3-frontend-${{ github.ref_name }}/*"
+              }
+            ]
+          }'
+
       - name: Sync S3 bucket
         run: |
           aws s3 sync build s3://group-3-frontend-${{ github.ref_name }} --delete
