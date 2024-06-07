@@ -35,7 +35,7 @@ resource "aws_iam_role_policy" "s3_bucket_policy" {
           "s3:GetObject"
         ],
         Resource = [
-          "arn:aws:s3:::group-3-frontend-${var.branch_name}i",
+          "arn:aws:s3:::group-3-frontend-${var.branch_name}",
           "arn:aws:s3:::group-3-frontend-${var.branch_name}/*"
         ]
       }
@@ -43,6 +43,7 @@ resource "aws_iam_role_policy" "s3_bucket_policy" {
   })
 }
 
+# S3 Bucket to store the frontend files
 resource "aws_s3_bucket" "frontend" {
   bucket = "group-3-frontend-${var.branch_name}"
 
@@ -51,6 +52,7 @@ resource "aws_s3_bucket" "frontend" {
   }
 }
 
+# Uploading frontend build files to S3 bucket
 resource "aws_s3_object" "frontend" {
   for_each = fileset("frontend/build", "**/*")
 
@@ -59,6 +61,7 @@ resource "aws_s3_object" "frontend" {
   source = "frontend/build/${each.value}"
 }
 
+# Policy to allow public read access to the S3 bucket
 resource "aws_s3_bucket_policy" "frontend_bucket_policy" {
   bucket = aws_s3_bucket.frontend.bucket
 
@@ -76,7 +79,7 @@ resource "aws_s3_bucket_policy" "frontend_bucket_policy" {
   })
 }
 
-
+# CloudFront distribution for serving the frontend content
 resource "aws_cloudfront_distribution" "frontend" {
   origin {
     domain_name = aws_s3_bucket.frontend.bucket_regional_domain_name
@@ -116,6 +119,3 @@ resource "aws_cloudfront_distribution" "frontend" {
     Name = "group-3-cloudfront-${var.branch_name}"
   }
 }
-
-#testtest
-#test

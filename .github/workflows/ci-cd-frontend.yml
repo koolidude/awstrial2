@@ -75,6 +75,15 @@ jobs:
           aws s3 sync build s3://group-3-frontend-${{ github.ref_name }} --delete
         working-directory: frontend
 
+      - name: Set S3 Public Access Block
+        run: |
+          aws s3api put-public-access-block --bucket group-3-frontend-${{ github.ref_name }} --public-access-block-configuration '{
+            "BlockPublicAcls": false,
+            "IgnorePublicAcls": false,
+            "BlockPublicPolicy": false,
+            "RestrictPublicBuckets": false
+          }'
+
       - name: Set S3 Bucket Policy
         run: |
           aws s3api put-bucket-policy --bucket group-3-frontend-${{ github.ref_name }} --policy '{
