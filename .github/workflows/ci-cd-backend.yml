@@ -7,7 +7,7 @@ on:
       - prod
       - uat
       - dev
-      - feature/*
+      - feature-*
       - feature-shukri
     paths:
       - 'backend/**'
