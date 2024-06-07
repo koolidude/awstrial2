@@ -70,7 +70,12 @@ jobs:
           terraform init
           terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}" || terraform refresh -var="branch_name=${{ github.ref_name }}"
 
-      - name: Update S3 bucket policy
+      - name: Sync S3 bucket
+        run: |
+          aws s3 sync build s3://group-3-frontend-${{ github.ref_name }} --delete
+        working-directory: frontend
+
+      - name: Set S3 Bucket Policy
         run: |
           aws s3api put-bucket-policy --bucket group-3-frontend-${{ github.ref_name }} --policy '{
             "Version": "2012-10-17",
@@ -84,11 +89,6 @@ jobs:
               }
             ]
           }'
-
-      - name: Sync S3 bucket
-        run: |
-          aws s3 sync build s3://group-3-frontend-${{ github.ref_name }} --delete
-        working-directory: frontend
 
       - name: Fetch CloudFront Distribution ID
         id: cloudfront
