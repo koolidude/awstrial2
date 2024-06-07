@@ -57,3 +57,5 @@ resource "aws_cloudfront_distribution" "frontend" {
     Name = "group-3-cloudfront-${var.branch_name}"
   }
 }
+
+#test
