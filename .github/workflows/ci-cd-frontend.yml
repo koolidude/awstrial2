@@ -20,7 +20,7 @@ on:
       - dev
 
 jobs:
-  build:
+  build-frontend:
     runs-on: ubuntu-latest
 
     steps:
@@ -44,12 +44,25 @@ jobs:
         run: npm run build
         working-directory: frontend
 
+      - name: Verify build directory
+        run: ls -la build
+        working-directory: frontend
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+
+      - name: Fetch Backend ALB URL from Parameter Store
+        id: fetch-alb-url
+        run: |
+          alb_url=$(aws ssm get-parameter --name "/group-3/backend-alb-url" --query "Parameter.Value" --output text)
+          echo "::set-output name=alb_url::$alb_url"
+
+      - name: Set Environment Variable
+        run: echo "REACT_APP_BACKEND_URL=${{ steps.fetch-alb-url.outputs.alb_url }}" >> frontend/.env
 
       - name: Deploy infrastructure
         run: |
@@ -59,9 +72,39 @@ jobs:
 
       - name: Sync S3 bucket
         run: |
-          aws s3 sync frontend/build s3://group-3-frontend-${{ github.ref_name }} --delete
+          aws s3 sync build s3://group-3-frontend-${{ github.ref_name }} --delete
         working-directory: frontend
+
+      - name: Set S3 Public Access Block
+        run: |
+          aws s3api put-public-access-block --bucket group-3-frontend-${{ github.ref_name }} --public-access-block-configuration '{
+            "BlockPublicAcls": false,
+            "IgnorePublicAcls": false,
+            "BlockPublicPolicy": false,
+            "RestrictPublicBuckets": false
+          }'
+
+      - name: Set S3 Bucket Policy
+        run: |
+          aws s3api put-bucket-policy --bucket group-3-frontend-${{ github.ref_name }} --policy '{
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "PublicReadGetObject",
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::group-3-frontend-${{ github.ref_name }}/*"
+              }
+            ]
+          }'
+
+      - name: Fetch CloudFront Distribution ID
+        id: cloudfront
+        run: |
+          echo "::set-output name=distribution_id::$(terraform output -raw cloudfront_distribution_id)"
+        working-directory: infrastructure/terraform/frontend
 
       - name: Invalidate CloudFront cache
         run: |
-          aws cloudfront create-invalidation --distribution-id YOUR_DISTRIBUTION_ID --paths "/*"
+          aws cloudfront create-invalidation --distribution-id ${{ steps.cloudfront.outputs.distribution_id }} --paths "/*"
