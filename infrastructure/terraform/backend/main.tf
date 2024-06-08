@@ -152,24 +152,7 @@ resource "aws_lb_target_group" "main" {
   }
 }
 
-# SSL Certificate for HTTPS Listener
-# Automatically requests and provisions an SSL certificate.
-resource "aws_acm_certificate" "cert" {
-  domain_name       = "group-3-backend.sctp-sandbox.com"
-  validation_method = "DNS"
-}
-
-# Route 53 Record for SSL Validation
-# Creates the required DNS record for SSL certificate validation.
-resource "aws_route53_record" "cert_validation" {
-  name    = aws_acm_certificate.cert.domain_validation_options[0].resource_record_name
-  type    = aws_acm_certificate.cert.domain_validation_options[0].resource_record_type
-  zone_id = var.route53_zone_id
-  records = [aws_acm_certificate.cert.domain_validation_options[0].resource_record_value]
-  ttl     = 60
-}
-
-# ALB Listener with SSL Certificate (HTTPS)
+# ALB Listener
 # The Listener defines the protocol and port that the load balancer uses to listen for incoming connections.
 resource "aws_lb_listener" "main" {
   load_balancer_arn = aws_lb.main.arn
@@ -378,5 +361,37 @@ resource "aws_route_table_association" "private2" {
   route_table_id = aws_route_table.private.id
 }
 
-#end
-#end
+# ACM Certificate
+resource "aws_acm_certificate" "cert" {
+  domain_name       = "group-3-backend.sctp-sandbox.com"
+  validation_method = "DNS"
+  
+  subject_alternative_names = [
+    "group-3-backend.sctp-sandbox.com",
+  ]
+
+  tags = {
+    Name = "group-3-backend"
+  }
+}
+
+resource "aws_route53_record" "cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.cert.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      type   = dvo.resource_record_type
+      record = dvo.resource_record_value
+    }
+  }
+  
+  zone_id = var.route53_zone_id
+  name    = each.value.name
+  type    = each.value.type
+  records = [each.value.record]
+  ttl     = 60
+}
+
+resource "aws_acm_certificate_validation" "cert" {
+  certificate_arn         = aws_acm_certificate.cert.arn
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
+}
