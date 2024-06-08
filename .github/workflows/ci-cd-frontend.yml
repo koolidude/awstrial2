@@ -7,8 +7,6 @@ on:
       - prod
       - uat
       - dev
-      - feature/*
-      - feature-shukri
     paths:
       - 'frontend/**'
       - 'infrastructure/terraform/frontend/**'
@@ -60,10 +58,10 @@ jobs:
         run: |
           alb_url=$(aws ssm get-parameter --name "/group-3/backend-alb-url" --query "Parameter.Value" --output text)
           echo "::set-output name=alb_url::$alb_url"
-
+      
       - name: Set Environment Variable
         run: echo "REACT_APP_BACKEND_URL=${{ steps.fetch-alb-url.outputs.alb_url }}" >> frontend/.env
-
+      
       - name: Deploy infrastructure
         run: |
           cd infrastructure/terraform/frontend

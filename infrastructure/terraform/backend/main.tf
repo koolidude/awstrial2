@@ -152,12 +152,31 @@ resource "aws_lb_target_group" "main" {
   }
 }
 
-# ALB Listener
+# SSL Certificate for HTTPS Listener
+# Automatically requests and provisions an SSL certificate.
+resource "aws_acm_certificate" "cert" {
+  domain_name       = "group-3-backend.sctp-sandbox.com"
+  validation_method = "DNS"
+}
+
+# Route 53 Record for SSL Validation
+# Creates the required DNS record for SSL certificate validation.
+resource "aws_route53_record" "cert_validation" {
+  name    = aws_acm_certificate.cert.domain_validation_options[0].resource_record_name
+  type    = aws_acm_certificate.cert.domain_validation_options[0].resource_record_type
+  zone_id = var.route53_zone_id
+  records = [aws_acm_certificate.cert.domain_validation_options[0].resource_record_value]
+  ttl     = 60
+}
+
+# ALB Listener with SSL Certificate (HTTPS)
 # The Listener defines the protocol and port that the load balancer uses to listen for incoming connections.
 resource "aws_lb_listener" "main" {
   load_balancer_arn = aws_lb.main.arn
   port              = "5000"
-  protocol          = "HTTP"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate.cert.arn
 
   default_action {
     type             = "forward"
@@ -358,6 +377,3 @@ resource "aws_route_table_association" "private2" {
   subnet_id      = aws_subnet.private2.id
   route_table_id = aws_route_table.private.id
 }
-
-#TEST
-#TEST
