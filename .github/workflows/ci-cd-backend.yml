@@ -10,12 +10,12 @@ on:
     paths:
       - 'backend/**'
       - 'infrastructure/terraform/backend/**'
-  pull_request:
-    types: [closed]
-    branches:
-      - prod
-      - uat
-      - dev
+  # pull_request:
+  #   types: [closed]
+  #   branches:
+  #     - prod
+  #     - uat
+  #     - dev
 
 jobs:
   build-backend:
