@@ -5,7 +5,7 @@ function App() {
     const [movies, setMovies] = useState([]);
 
     useEffect(() => {
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+        const backendUrl = process.env.REACT_APP_BACKEND_URL;
         fetch(`https://${backendUrl}:5000/movies`)
             .then(response => response.json())
             .then(data => setMovies(data.results))
