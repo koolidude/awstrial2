@@ -7,7 +7,6 @@ on:
       - prod
       - uat
       - dev
-      - feature-*
     paths:
       - 'backend/**'
       - 'infrastructure/terraform/backend/**'
