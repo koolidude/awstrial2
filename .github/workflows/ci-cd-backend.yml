@@ -69,7 +69,7 @@ jobs:
           terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}" \
           -var="tmdb_api_key=${{ secrets.TMDB_API_KEY }}" \
           -var="secret_key=${{ secrets.SECRET_KEY }}" \
-          -var-file="infrastructure/terraform/backend/terraform.tfvars"
+          -var "route53_zone_id=${{ secrets.ROUTE53_ZONE_ID }}"
 
       - name: Build and push Docker image
         run: |
