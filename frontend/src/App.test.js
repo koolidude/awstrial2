@@ -1,25 +1,49 @@
-import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/extend-expect';
 import App from './App';
 
-// Mock the fetch function to return sample data for the movies endpoint
-beforeEach(() => {
-  global.fetch = jest.fn(() =>
-    Promise.resolve({
-      json: () => Promise.resolve({ results: [{ id: 1, title: 'Movie Title', poster_path: '/path/to/poster.jpg' }] }),
-    })
-  );
-});
+// Mocking fetch to prevent actual API calls during tests
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    json: () => Promise.resolve({ results: [{ id: 1, title: 'Test Movie', poster_path: '/test.jpg' }] }),
+  })
+);
 
-test('renders Netflix Clone header', () => {
-  render(<App />);
-  const headerElement = screen.getByText(/Netflix Clone/i);
-  expect(headerElement).toBeInTheDocument();
-});
+describe('App Component', () => {
+  test('renders Netflix Clone title', () => {
+    render(<App />);
+    const titleElement = screen.getByText(/Netflix Clone/i);
+    expect(titleElement).toBeInTheDocument();
+  });
 
-test('fetches and displays movies', async () => {
-  render(<App />);
-  const movieElement = await screen.findByText(/Movie Title/i);
-  expect(movieElement).toBeInTheDocument();
+  test('renders search input', () => {
+    render(<App />);
+    const inputElement = screen.getByLabelText(/Search Movies/i);
+    expect(inputElement).toBeInTheDocument();
+  });
+
+  test('renders search button', () => {
+    render(<App />);
+    const buttonElement = screen.getByText(/Search/i);
+    expect(buttonElement).toBeInTheDocument();
+  });
+
+  test('fetches and displays movies on load', async () => {
+    render(<App />);
+    const movieTitle = await screen.findByText('Test Movie');
+    expect(movieTitle).toBeInTheDocument();
+  });
+
+  test('fetches and displays search results', async () => {
+    render(<App />);
+    const inputElement = screen.getByLabelText(/Search Movies/i);
+    const buttonElement = screen.getByText(/Search/i);
+
+    fireEvent.change(inputElement, { target: { value: 'Test' } });
+    fireEvent.click(buttonElement);
+
+    const movieTitle = await screen.findByText('Test Movie');
+    expect(movieTitle).toBeInTheDocument();
+  });
 });
