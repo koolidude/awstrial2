@@ -120,6 +120,13 @@ jobs:
          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
          aws-region: us-east-1
         
+      - name: Build Docker image
+        run: |
+         docker build -t netflix_clone_backend .
+         docker tag netflix_clone_backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
+        working-directory: backend
+       
+         
       - name: Create Terraform state S3 bucket if it does not exist
         run: |
          if ! aws s3api head-bucket --bucket group-3-terraform-state 2>/dev/null; then
@@ -143,13 +150,6 @@ jobs:
          -var "route53_zone_id=${{ secrets.ROUTE53_ZONE_ID }}"
        # working-directory: infrastructure/terraform/backend
 
-      - name: Build Docker image
-        run: |
-         aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
-         docker build -t netflix_clone_backend .
-         docker tag netflix_clone_backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
-        working-directory: backend
-      
       - name: Run image scan
         uses: aquasecurity/trivy-action@master
         with:
@@ -167,7 +167,9 @@ jobs:
          path: docker-image-scan.json
 
       - name: Docker publish to ECR
-        run: docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
+        run: |
+         aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+         docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
 
       - name: Update ECS service
         run: |
