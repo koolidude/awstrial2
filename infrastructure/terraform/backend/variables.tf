@@ -12,3 +12,8 @@ variable "secret_key" {
   description = "Secret Key"
   type        = string
 }
+
+variable "route53_zone_id" {
+  description = "The ID of the Route 53 hosted zone"
+  type        = string
+}

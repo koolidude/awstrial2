@@ -3,6 +3,7 @@ provider "aws" {
 }
 
 # VPC
+# The VPC is the main networking component where all resources will be launched.
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
   enable_dns_support = true
@@ -13,6 +14,7 @@ resource "aws_vpc" "main" {
 }
 
 # Internet Gateway
+# The Internet Gateway enables the VPC to connect to the internet.
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
   tags = {
@@ -21,6 +23,7 @@ resource "aws_internet_gateway" "main" {
 }
 
 # Route Table
+# The Route Table manages the routes for the VPC, allowing traffic to the internet via the Internet Gateway.
 resource "aws_route_table" "main" {
   vpc_id = aws_vpc.main.id
   route {
@@ -32,7 +35,8 @@ resource "aws_route_table" "main" {
   }
 }
 
-# Public Subnet 1
+# Public Subnets
+# Public subnets are subnets with a direct route to the internet.
 resource "aws_subnet" "public1" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.1.0/24"
@@ -43,7 +47,6 @@ resource "aws_subnet" "public1" {
   }
 }
 
-# Public Subnet 2
 resource "aws_subnet" "public2" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.2.0/24"
@@ -54,7 +57,8 @@ resource "aws_subnet" "public2" {
   }
 }
 
-# Private Subnet 1
+# Private Subnets
+# Private subnets are subnets without a direct route to the internet.
 resource "aws_subnet" "private1" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.3.0/24"
@@ -64,7 +68,6 @@ resource "aws_subnet" "private1" {
   }
 }
 
-# Private Subnet 2
 resource "aws_subnet" "private2" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.4.0/24"
@@ -75,6 +78,7 @@ resource "aws_subnet" "private2" {
 }
 
 # Associate Subnets with Route Table
+# These associations link the public subnets with the main route table.
 resource "aws_route_table_association" "public1" {
   subnet_id      = aws_subnet.public1.id
   route_table_id = aws_route_table.main.id
@@ -86,6 +90,7 @@ resource "aws_route_table_association" "public2" {
 }
 
 # Security Group
+# The Security Group acts as a virtual firewall to control inbound and outbound traffic.
 resource "aws_security_group" "main" {
   name        = "group-3-sg-${var.branch_name}"
   description = "Security group for group-3-${var.branch_name}"
@@ -117,7 +122,8 @@ resource "aws_security_group" "main" {
   }
 }
 
-# ALB
+# Application Load Balancer (ALB)
+# The ALB distributes incoming application traffic across multiple targets.
 resource "aws_lb" "main" {
   name               = "group-3-alb-${var.branch_name}"
   internal           = false
@@ -129,6 +135,7 @@ resource "aws_lb" "main" {
 }
 
 # ALB Target Group
+# The Target Group is used to route requests to one or more registered targets.
 resource "aws_lb_target_group" "main" {
   name     = "group-3-tg-${var.branch_name}"
   port     = 5000
@@ -146,10 +153,13 @@ resource "aws_lb_target_group" "main" {
 }
 
 # ALB Listener
+# The Listener defines the protocol and port that the load balancer uses to listen for incoming connections.
 resource "aws_lb_listener" "main" {
   load_balancer_arn = aws_lb.main.arn
   port              = "5000"
-  protocol          = "HTTP"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate.cert.arn
 
   default_action {
     type             = "forward"
@@ -158,6 +168,7 @@ resource "aws_lb_listener" "main" {
 }
 
 # ECS Task Execution Role
+# The IAM Role that the ECS tasks will use to call AWS services.
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "group-3-ecs-task-execution-role-${var.branch_name}"
 
@@ -182,28 +193,33 @@ resource "aws_iam_role" "ecs_task_execution_role" {
 }
 
 # ECS Task Execution Policy
+# Attaches the required policy to the ECS Task Execution Role.
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy" {
   role       = aws_iam_role.ecs_task_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
 # ECS CloudWatch Logs Policy
+# Attaches the CloudWatch Logs policy to the ECS Task Execution Role for logging.
 resource "aws_iam_role_policy_attachment" "ecs_cloudwatch_policy" {
   role       = aws_iam_role.ecs_task_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
 }
 
 # ECR Repository
+# The ECR repository to store Docker images.
 resource "aws_ecr_repository" "netflix_clone" {
   name = "group-3-ecr-repo-${var.branch_name}"
 }
 
 # ECS Cluster
+# The ECS Cluster where the services will be deployed.
 resource "aws_ecs_cluster" "netflix_clone_cluster" {
   name = "group-3-ecs-cluster-${var.branch_name}"
 }
 
 # ECS Task Definition
+# Defines the ECS Task with container settings.
 resource "aws_ecs_task_definition" "netflix_clone_task" {
   family                   = "group-3-ecs-task-${var.branch_name}"
   network_mode             = "awsvpc"
@@ -247,6 +263,7 @@ resource "aws_ecs_task_definition" "netflix_clone_task" {
 }
 
 # ECS Service
+# The ECS Service to manage the running of the tasks.
 resource "aws_ecs_service" "netflix_clone_service" {
   name            = "group-3-ecs-service-${var.branch_name}"
   cluster         = aws_ecs_cluster.netflix_clone_cluster.id
@@ -268,12 +285,14 @@ resource "aws_ecs_service" "netflix_clone_service" {
 }
 
 # CloudWatch Log Group
+# The Log Group to store ECS logs in CloudWatch.
 resource "aws_cloudwatch_log_group" "ecs_log_group" {
   name              = "/ecs/group-3-${var.branch_name}"
   retention_in_days = 7
 }
 
 # VPC Endpoint for ECR
+# Allows the ECS tasks to pull images from ECR privately.
 resource "aws_vpc_endpoint" "ecr" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.us-east-1.ecr.api"
@@ -287,19 +306,20 @@ resource "aws_vpc_endpoint" "ecr" {
 }
 
 # VPC Endpoint for ECR Docker
+# Allows the ECS tasks to pull images from ECR Docker privately.
 resource "aws_vpc_endpoint" "ecr_dkr" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.us-east-1.ecr.dkr"
   subnet_ids        = [aws_subnet.private1.id, aws_subnet.private2.id]
   security_group_ids = [aws_security_group.main.id]
   vpc_endpoint_type = "Interface"
-
   tags = {
     Name = "group-3-ep-ecrdkr-${var.branch_name}"
   }
 }
 
 # NAT Gateway
+# Allows instances in the private subnets to access the internet.
 resource "aws_eip" "nat" {
   vpc = true
   tags = {
@@ -315,6 +335,8 @@ resource "aws_nat_gateway" "nat" {
   }
 }
 
+# Private Route Table
+# Route table for private subnets to route traffic through the NAT Gateway.
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
@@ -328,6 +350,7 @@ resource "aws_route_table" "private" {
   }
 }
 
+# Associate Private Subnets with Private Route Table
 resource "aws_route_table_association" "private1" {
   subnet_id      = aws_subnet.private1.id
   route_table_id = aws_route_table.private.id
@@ -336,4 +359,39 @@ resource "aws_route_table_association" "private1" {
 resource "aws_route_table_association" "private2" {
   subnet_id      = aws_subnet.private2.id
   route_table_id = aws_route_table.private.id
+}
+
+# ACM Certificate
+resource "aws_acm_certificate" "cert" {
+  domain_name       = "group-3-backend.sctp-sandbox.com"
+  validation_method = "DNS"
+  
+  subject_alternative_names = [
+    "group-3-backend.sctp-sandbox.com",
+  ]
+
+  tags = {
+    Name = "group-3-backend"
+  }
+}
+
+resource "aws_route53_record" "cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.cert.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      type   = dvo.resource_record_type
+      record = dvo.resource_record_value
+    }
+  }
+  
+  zone_id = var.route53_zone_id
+  name    = each.value.name
+  type    = each.value.type
+  records = [each.value.record]
+  ttl     = 60
+}
+
+resource "aws_acm_certificate_validation" "cert" {
+  certificate_arn         = aws_acm_certificate.cert.arn
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
 }

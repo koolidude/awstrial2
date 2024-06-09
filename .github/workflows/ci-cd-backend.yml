@@ -7,20 +7,18 @@ on:
       - prod
       - uat
       - dev
-      - feature/*
-      - feature-shukri
     paths:
       - 'backend/**'
       - 'infrastructure/terraform/backend/**'
-  pull_request:
-    types: [closed]
-    branches:
-      - prod
-      - uat
-      - dev
+  # pull_request:
+  #   types: [closed]
+  #   branches:
+  #     - prod
+  #     - uat
+  #     - dev
 
 jobs:
-  build:
+  build-backend:
     runs-on: ubuntu-latest
 
     steps:
@@ -67,7 +65,10 @@ jobs:
           -backend-config="bucket=group-3-terraform-state" \
           -backend-config="key=group-3-terraform-state/terraform.tfstate" \
           -backend-config="region=us-east-1"
-          terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}" -var="tmdb_api_key=${{ secrets.TMDB_API_KEY }}" -var="secret_key=${{ secrets.SECRET_KEY }}"
+          terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}" \
+          -var="tmdb_api_key=${{ secrets.TMDB_API_KEY }}" \
+          -var="secret_key=${{ secrets.SECRET_KEY }}" \
+          -var "route53_zone_id=${{ secrets.ROUTE53_ZONE_ID }}"
 
       - name: Build and push Docker image
         run: |
@@ -80,3 +81,14 @@ jobs:
       - name: Update ECS service
         run: |
           aws ecs update-service --cluster group-3-ecs-cluster-${{ github.ref_name }} --service group-3-ecs-service-${{ github.ref_name }} --force-new-deployment
+
+      - name: Get ALB URL
+        id: get-alb-url
+        run: |
+          alb_url=$(aws elbv2 describe-load-balancers --names group-3-alb-${{ github.ref_name }} --query 'LoadBalancers[0].DNSName' --output text)
+          echo "::set-output name=alb_url::$alb_url"
+
+      - name: Store ALB URL in Parameter Store
+        run: |
+          aws ssm put-parameter --name "/group-3/backend-alb-url" --value "${{ steps.get-alb-url.outputs.alb_url }}" --type "String" --overwrite
+
