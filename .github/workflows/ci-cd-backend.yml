@@ -70,13 +70,31 @@ jobs:
           -var="secret_key=${{ secrets.SECRET_KEY }}" \
           -var "route53_zone_id=${{ secrets.ROUTE53_ZONE_ID }}"
 
-      - name: Build and push Docker image
+      - name: Build Docker image
         run: |
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
           docker build -t netflix_clone_backend .
           docker tag netflix_clone_backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
         working-directory: backend
+      
+      - name: Run image scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'netflix_clone_backend:latest'
+          format: 'table'
+          # exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'MEDIUM,HIGH,CRITICAL'
+          output: 'docker-image-scan.json'
+      - name: Upload Docker Trivy Report
+        uses: actions/upload-artifact@v4.3.0
+        with:
+          name: docker-image-scan
+          path: docker-image-scan.json
+
+      - name: Docker publish to ECR
+        run: docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
 
       - name: Update ECS service
         run: |
