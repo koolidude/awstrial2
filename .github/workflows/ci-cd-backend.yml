@@ -73,6 +73,7 @@ jobs:
           env:
             SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           run: | 
+            cd backend/src
             snyk test --severity-threshold=high
             snyk test --severity-threshold=high --json > snyk-results.json
         - name: Upload Snyk Scan Results
