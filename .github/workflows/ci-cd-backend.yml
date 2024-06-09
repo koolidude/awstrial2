@@ -48,7 +48,8 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-        uses: act10ns/slack@v2
+
+      - uses: act10ns/slack@v2
         with:
             status: starting
             channel: '#notifications'
@@ -65,6 +66,13 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-east-1
 
+      - uses: act10ns/slack@v2
+        with:
+            status: starting
+            channel: '#notifications'
+            message: Starting Terraform init and apply...
+          if: always()
+    
       - name: Deploy infrastructure
         run: |
           cd infrastructure/terraform/backend
@@ -99,3 +107,9 @@ jobs:
         run: |
           aws ssm put-parameter --name "/group-3/backend-alb-url" --value "${{ steps.get-alb-url.outputs.alb_url }}" --type "String" --overwrite
 
+          - uses: act10ns/slack@v2
+          with:
+            channel: '#notifications'
+            status: ${{ job.status }}
+            steps: ${{ toJson(steps) }}
+          if: always()
