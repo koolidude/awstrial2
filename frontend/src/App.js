@@ -31,6 +31,27 @@ function App() {
             .catch(error => console.error('Error searching movies:', error));
     };
 
+    const fetchTopRatedMovies = () => {
+        fetch(`${backendUrl}/movies/top-rated`)
+            .then(response => response.json())
+            .then(data => setMovies(data.results))
+            .catch(error => console.error('Error fetching top rated movies:', error));
+    };
+
+    const fetchUpcomingMovies = () => {
+        fetch(`${backendUrl}/movies/upcoming`)
+            .then(response => response.json())
+            .then (data => setMovies(data.results))
+            .catch(error => console.error('Error fetching upcoming movies:', error));
+    };
+
+    const fetchMoviesByGenre = (genreId) => {
+        fetch(`${backendUrl}/movies/genre/${genreId}`)
+            .then(response => response.json())
+            .then(data => setMovies(data.results))
+            .catch(error => console.error('Error fetching movies by genre:', error));
+    };
+
     return (
         <Container>
             <header className="App-header">
@@ -40,8 +61,12 @@ function App() {
                     variant="outlined" 
                     value={searchQuery} 
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    InputLabelProps={{ style: { color: '#ffffff' } }} /* Set label color to white */
                 />
                 <Button variant="contained" color="primary" onClick={handleSearch}>Search</Button>
+                <Button variant="contained" color="primary" onClick={fetchTopRatedMovies}>Top Rated Movies</Button>
+                <Button variant="contained" color="primary" onClick={fetchUpcomingMovies}>Upcoming Movies</Button>
+                <Button variant="contained" color="primary" onClick={() => fetchMoviesByGenre(28)}>Action Movies</Button>
             </header>
             <main>
                 <Grid container spacing={3}>

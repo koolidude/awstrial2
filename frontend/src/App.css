@@ -1,6 +1,6 @@
 .App-header {
   background-color: #141414;
-  color: #ffffff;
+  color: #e50914; /* Netflix red color */
   padding: 20px;
   text-align: center;
 }
@@ -18,5 +18,23 @@
 
 .MuiCard-root {
   background-color: #1f1f1f;
+  color: #ffffff;
+}
+
+.MuiTypography-root {
+  color: #ffffff; /* Ensure all Typography text is white */
+}
+
+.MuiOutlinedInput-root {
+  color: #ffffff;
+  border-color: #e50914;
+}
+
+.MuiOutlinedInput-notchedOutline {
+  border-color: #e50914;
+}
+
+.MuiButton-containedPrimary {
+  background-color: #e50914;
   color: #ffffff;
 }
