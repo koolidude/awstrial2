@@ -7,6 +7,7 @@ on:
       - prod
       - uat
       - dev
+      - feature-*
     paths:
       - 'backend/**'
       - 'infrastructure/terraform/backend/**'
@@ -40,6 +41,7 @@ jobs:
           # PYTHONPATH: ${{ github.workspace }}/backend
         # run: |
           # python -m unittest discover -s backend/tests
+
   code-unit-testing:
     runs-on: ubuntu-latest
     needs: [install-dependencies]
@@ -52,8 +54,6 @@ jobs:
          run: |
           python -m unittest discover -s backend/tests
 
-
-          
   code-vulnerability-scanning:
     runs-on: ubuntu-latest
     needs: [install-dependencies, code-unit-testing]
