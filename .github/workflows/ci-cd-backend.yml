@@ -110,8 +110,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [install-dependencies, code-vulnerability-scanning, iac-vulnerability-scanning]
     steps:
-      - name: Check out repository co
+      - name: Check out repository code
         uses: actions/checkout@v4.1.5
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -131,6 +132,7 @@ jobs:
 
       - name: Deploy infrastructure
         run: |
+         cd infrastructure/terraform/backend
          terraform init \
          -backend-config="bucket=group-3-terraform-state" \
          -backend-config="key=group-3-terraform-state/terraform.tfstate" \
@@ -139,7 +141,7 @@ jobs:
          -var="tmdb_api_key=${{ secrets.TMDB_API_KEY }}" \
          -var="secret_key=${{ secrets.SECRET_KEY }}" \
          -var "route53_zone_id=${{ secrets.ROUTE53_ZONE_ID }}"
-        working-directory: infrastructure/terraform/backend
+       # working-directory: infrastructure/terraform/backend
 
       - name: Build Docker image
         run: |
