@@ -48,13 +48,14 @@ jobs:
     outputs:
       status: ${{ job.status }}
     steps:
-       - name: Run unit testing command
-         env:
-          PYTHONPATH: ${{ github.workspace }}/backend  
-         run: |
-          python -m pip install --upgrade pip
-          pip install -r backend/src/requirements.txt 
-          python -m unittest discover -s backend/tests
+      - name: Checkout code
+        uses: actions/checkout@v2
+       
+      - name: Run unit testing command
+        env:
+           PYTHONPATH: ${{ github.workspace }}/backend  
+        run: |
+         python -m unittest discover -s backend/tests
 
   code-vulnerability-scanning:
     runs-on: ubuntu-latest
