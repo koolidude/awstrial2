@@ -16,7 +16,8 @@ on:
   #     - prod
   #     - uat
   #     - dev
-
+env:
+    SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 jobs:
   build-backend:
     runs-on: ubuntu-latest
@@ -47,7 +48,13 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-
+        uses: act10ns/slack@v2
+        with:
+            status: starting
+            channel: '#notifications'
+            message: Starting Docker Build image...
+          if: always()
+    
       - name: Create Terraform state S3 bucket if it does not exist
         run: |
           if ! aws s3api head-bucket --bucket group-3-terraform-state 2>/dev/null; then
