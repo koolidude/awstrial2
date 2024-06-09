@@ -78,7 +78,6 @@ jobs:
            cd backend/src
             snyk test --severity-threshold=high --skip-unresolved
             snyk test --severity-threshold=high --json > snyk-results.json
-            snyk fix
         - name: Upload Snyk Scan Results
           uses: actions/upload-artifact@v4.3.0
           with:
