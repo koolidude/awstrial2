@@ -79,7 +79,7 @@ describe('App Component', () => {
         render(<App />);
 
         fireEvent.change(screen.getByLabelText(/Search Movies/i), { target: { value: 'Test' } });
-        fireEvent.click(screen.getByText(/Search/i));
+        fireEvent.click(screen.getAllByRole('button', { name: /Search/i })[0]);
 
         await waitFor(() => {
             expect(screen.getByText('Search Result 1')).toBeInTheDocument();
