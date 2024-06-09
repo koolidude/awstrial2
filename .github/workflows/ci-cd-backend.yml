@@ -129,7 +129,6 @@ jobs:
 
       - name: Deploy infrastructure
         run: |
-         cd infrastructure/terraform/backend
          terraform init \
          -backend-config="bucket=group-3-terraform-state" \
          -backend-config="key=group-3-terraform-state/terraform.tfstate" \
@@ -138,6 +137,7 @@ jobs:
          -var="tmdb_api_key=${{ secrets.TMDB_API_KEY }}" \
          -var="secret_key=${{ secrets.SECRET_KEY }}" \
          -var "route53_zone_id=${{ secrets.ROUTE53_ZONE_ID }}"
+        working-directory: infrastructure/terraform/backend
 
       - name: Build Docker image
         run: |
