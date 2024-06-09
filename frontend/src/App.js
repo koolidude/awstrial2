@@ -5,8 +5,9 @@ function App() {
     const [movies, setMovies] = useState([]);
 
     useEffect(() => {
-        const backendUrl = process.env.REACT_APP_BACKEND_URL;
-        fetch(`https://${backendUrl}:5000/movies`)
+        //const backendUrl = process.env.REACT_APP_BACKEND_URL;
+        const backendUrl = 'https://group-3-backend.sctp-sandbox.com:5000'
+        fetch(`${backendUrl}/movies`)
             .then(response => response.json())
             .then(data => setMovies(data.results))
             .catch(error => console.error('Error fetching movies:', error));
