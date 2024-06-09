@@ -6,15 +6,23 @@ import MovieCard from './MovieCard';
 function App() {
     const [movies, setMovies] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
-
     const backendUrl = 'https://group-3-backend.sctp-sandbox.com:5000';
 
     useEffect(() => {
+        let isMounted = true;
         fetch(`${backendUrl}/movies`)
             .then(response => response.json())
-            .then(data => setMovies(data.results))
+            .then(data => {
+                if (isMounted) {
+                    setMovies(data.results);
+                }
+            })
             .catch(error => console.error('Error fetching movies:', error));
-    }, []);
+
+        return () => {
+            isMounted = false;
+        };
+    }, [backendUrl]);
 
     const handleSearch = () => {
         fetch(`${backendUrl}/movies/search/${searchQuery}`)
