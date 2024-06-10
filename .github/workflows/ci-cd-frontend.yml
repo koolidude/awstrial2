@@ -19,36 +19,36 @@ on:
   #     - dev
 
 jobs:
-  build-frontend:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '14'
-
-      - name: Install dependencies
-        run: npm install
-        working-directory: frontend
-
+  # build-frontend:
+    # runs-on: ubuntu-latest
+# 
+    # steps:
+      # - name: Checkout code
+        # uses: actions/checkout@v2
+# 
+      # - name: Set up Node.js
+        # uses: actions/setup-node@v2
+        # with:
+          # node-version: '14'
+# 
+      # - name: Install dependencies
+        # run: npm install
+        # working-directory: frontend
+# 
       # - name: Run tests
         # run: npm test
         # working-directory: frontend
-
-      - name: Build frontend
-        run: npm run build
-        working-directory: frontend
-
-      - name: Verify build directory
-        run: ls -la build
-        working-directory: frontend
+# 
+      # - name: Build frontend
+        # run: npm run build
+        # working-directory: frontend
+# 
+      # - name: Verify build directory
+        # run: ls -la build
+        # working-directory: frontend
   code-unit-testing:
     runs-on: ubuntu-latest
-    needs: [build-frontend]
+    #needs: [build-frontend]
     steps:  
         - name: Checkout code
           uses: actions/checkout@v2
@@ -62,10 +62,54 @@ jobs:
         - name: Run tests
           run: npm test
           working-directory: frontend
-      
+  code-vulnerability-scanning:
+     runs-on: ubuntu-latest
+     needs: [code-unit-testing]
+     outputs:
+      status: ${{ job.status }}
+     steps:
+        - name: Check out repository code
+          uses: actions/checkout@v4.1.5
+        - name: Install Snyk CLI
+          run: npm install -g snyk
+        - name: Run Snyk to check for vulnerabilities
+          env:
+            SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          run: | 
+            cd frontend/src
+            snyk test --severity-threshold=high --skip-unresolved
+            snyk test --severity-threshold=high --json > snyk-results.json
+        - name: Upload Snyk Scan Results
+          uses: actions/upload-artifact@v4.3.0
+          with:
+            name: snyk-scan-results
+            path: snyk-results.json
+                
+  iac-vulnerability-scanning:
+    runs-on: ubuntu-latest
+    needs: [code-unit-testing,code-vulnerability-scanning]
+    outputs:
+      status: ${{ job.status }}
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4.1.5
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+      - name: Run Snyk Code Scan And Check Snyk Scan Results
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          snyk iac test --severity-threshold=critical
+          snyk iac test --severity-threshold=critical --json > snyk_iac_report.json
+      - name: Upload Snyk IaC Report
+        uses: actions/upload-artifact@v4.3.0
+        with:
+          name: snyk-iac-report
+          path: snyk_iac_report.json            
+
   Deploying-Infrastructure-for-Frontend:
     runs-on: ubuntu-latest 
-    needs: [build-frontend,code-unit-testing]  
+    needs: [code-unit-testing,code-vulnerability-scanning,iac-vulnerability-scanning]  
     steps:
         - name: Checkout code
           uses: actions/checkout@v2
@@ -94,10 +138,17 @@ jobs:
   
   Setting-up-S3-bucket:
      runs-on: ubuntu-latest
-     needs: [build-frontend,code-unit-testing,Deploying-Infrastructure-for-Frontend]
+     needs: [code-unit-testing,code-vulnerability-scanning,iac-vulnerability-scanning,Deploying-Infrastructure-for-Frontend]
      steps:
        - name: Checkout code
          uses: actions/checkout@v2
+       - name: Set up Node.js
+         uses: actions/setup-node@v2
+         with:
+          node-version: '14'
+       - name: Build frontend
+         run: npm run build
+         working-directory: frontend
        - name: Configure AWS credentials
          uses: aws-actions/configure-aws-credentials@v1
          with:
@@ -134,7 +185,7 @@ jobs:
 
   Setting-up-of-CloudFront:
      runs-on: ubuntu-latest
-     needs: [build-frontend,code-unit-testing,Deploying-Infrastructure-for-Frontend,Setting-up-S3-bucket]
+     needs: [code-unit-testing,code-vulnerability-scanning,iac-vulnerability-scanning,Deploying-Infrastructure-for-Frontend,Setting-up-S3-bucket]
      steps:  
        - name: Fetch CloudFront Distribution ID
          id: cloudfront
