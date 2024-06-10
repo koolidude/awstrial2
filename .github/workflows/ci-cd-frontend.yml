@@ -91,10 +91,12 @@ jobs:
   
   Setting-up-S3-bucket:
      runs-on: ubuntu-latest
+     needs: [build-frontend,code-unit-testing,Deploying-Infrastructure-for-Frontend]
      steps:        
      - name: Sync S3 bucket
        run: |
-          aws s3 sync build s3://group-3-frontend-${{ github.ref_name }} --delete
+        cd frontend   
+        aws s3 sync build s3://group-3-frontend-${{ github.ref_name }} --delete
        working-directory: frontend
 
      - name: Set S3 Public Access Block
@@ -122,12 +124,14 @@ jobs:
         }'
 
   Setting-up-of-CloudFront:
-    runs-on: ubuntu-latest
-    steps:
+     runs-on: ubuntu-latest
+     needs: [build-frontend,code-unit-testing,Deploying-Infrastructure-for-Frontend,Setting-up-S3-bucket]
+     steps:  
        - name: Fetch CloudFront Distribution ID
          id: cloudfront
          run: |
-          echo "::set-output name=distribution_id::$(terraform output -raw cloudfront_distribution_id)"
+           cd frontend
+           echo "::set-output name=distribution_id::$(terraform output -raw cloudfront_distribution_id)"
          working-directory: infrastructure/terraform/frontend
 
        - name: Invalidate CloudFront cache
