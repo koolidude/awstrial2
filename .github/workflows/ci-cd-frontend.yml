@@ -201,6 +201,7 @@ jobs:
        - name: Fetch CloudFront Distribution ID
          id: cloudfront
          run: |
+           cd infrastructure/terraform/frontend 
            echo "::set-output name=distribution_id::$(terraform output -raw cloudfront_distribution_id)"
          working-directory: infrastructure/terraform/frontend
 
