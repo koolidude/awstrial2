@@ -4,7 +4,7 @@ provider "aws" {
 
 # IAM Role for S3 bucket policy management
 resource "aws_iam_role" "s3_bucket_policy_role" {
-  name = "group-3-s3-bucket-policy-role"
+  name = "group-3-s3-bucket-policy-role-${var.branch_name}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -22,7 +22,7 @@ resource "aws_iam_role" "s3_bucket_policy_role" {
 
 # Attach Policy to IAM Role
 resource "aws_iam_role_policy" "s3_bucket_policy" {
-  name   = "group-3-s3-bucket-policy"
+  name   = "group-3-s3-bucket-policy-${var.branch_name}"
   role   = aws_iam_role.s3_bucket_policy_role.id
   policy = jsonencode({
     Version = "2012-10-17",
