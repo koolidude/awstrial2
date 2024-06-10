@@ -32,7 +32,9 @@ jobs:
           node-version: '14'
 
       - name: Install dependencies
-        run: npm install
+        run: |
+         npm install @mui/material 
+         npm install
         working-directory: frontend
 
       # - name: Run tests
