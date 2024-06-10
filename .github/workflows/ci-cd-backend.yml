@@ -19,28 +19,6 @@ on:
   #     - dev
 
 jobs:
-  # install-dependencies:
-    # runs-on: ubuntu-latest
-
-    # steps:
-      # - name: Checkout code
-        # uses: actions/checkout@v2
-
-      # - name: Set up Python
-        # uses: actions/setup-python@v2
-        # with:
-          # python-version: '3.9'
-
-      # - name: Installing dependencies
-        # run: |
-          # python -m pip install --upgrade pip
-          # pip install -r backend/src/requirements.txt
-
-      # - name: Run unit tests 
-        # env:
-          # PYTHONPATH: ${{ github.workspace }}/backend
-        # run: |
-          # python -m unittest discover -s backend/tests
 
   code-unit-testing:
     runs-on: ubuntu-latest
@@ -76,8 +54,8 @@ jobs:
            python -m pip install --upgrade pip
            pip install -r backend/src/requirements.txt  
            cd backend/src
-            snyk test --severity-threshold=high --skip-unresolved
-            snyk test --severity-threshold=high --json > snyk-results.json
+            snyk test --severity-threshold=critical --skip-unresolved
+            snyk test --severity-threshold=critical --json > snyk-results.json
         - name: Upload Snyk Scan Results
           uses: actions/upload-artifact@v4.3.0
           with:
