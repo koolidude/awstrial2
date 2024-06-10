@@ -189,7 +189,9 @@ jobs:
   Setting-up-of-CloudFront:
      runs-on: ubuntu-latest
      needs: [code-unit-testing,Deploying-Infrastructure-for-Frontend,Setting-up-S3-bucket]
-     steps:  
+     steps:
+       - name: Checkout code
+         uses: actions/checkout@v2  
        - name: Fetch CloudFront Distribution ID
          id: cloudfront
          run: |
