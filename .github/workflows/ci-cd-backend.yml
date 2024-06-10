@@ -66,14 +66,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-east-1
 
-      - uses: act10ns/slack@v2
-        with:
-            status: starting
-            channel: '#notifications'
-            message: Starting Terraform init and apply...
-          if: always()
-    
-      - name: Deploy infrastructure
+        name: Deploy infrastructure
         run: |
           cd infrastructure/terraform/backend
           terraform init \
@@ -92,6 +85,13 @@ jobs:
           docker tag netflix_clone_backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
         working-directory: backend
+
+      - uses: act10ns/slack@v2
+        with:
+            status: starting
+            channel: '#notifications'
+            message: Starting Terraform init and apply...
+        if: always()
 
       - name: Update ECS service
         run: |
@@ -113,4 +113,3 @@ jobs:
             status: ${{ job.status }}
             steps: ${{ toJson(steps) }}
           if: always()
-          
