@@ -79,11 +79,11 @@ jobs:
           run: |
             alb_url=$(aws ssm get-parameter --name "/group-3/backend-alb-url" --query "Parameter.Value" --output text)
             echo "::set-output name=alb_url::$alb_url"
-        
-        - name: Set Environment Variable
-          run: |
-            cd frontend
-            echo "REACT_APP_BACKEND_URL=${{ steps.fetch-alb-url.outputs.alb_url }}" >> frontend/.env
+        # 
+        # - name: Set Environment Variable
+          # run: |
+            # cd frontend
+            # echo "REACT_APP_BACKEND_URL=${{ steps.fetch-alb-url.outputs.alb_url }}" >> frontend/.env
         
         - name: Deploy infrastructure
           run: |
