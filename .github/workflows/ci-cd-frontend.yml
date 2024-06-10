@@ -84,7 +84,6 @@ jobs:
         
         - name: Set Environment Variable
           run: |
-            cd frontend
             echo "REACT_APP_BACKEND_URL=${{ steps.fetch-alb-url.outputs.alb_url }}" >> frontend/.env
         
         - name: Deploy infrastructure
