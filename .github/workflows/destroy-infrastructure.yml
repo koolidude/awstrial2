@@ -1,10 +1,7 @@
-name: Destroy AWS Infrastructure
+name: Destroy Infrastructure
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - destroy
 
 jobs:
   destroy:
@@ -21,18 +18,135 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Set up Terraform
+      - name: Delete ECS Service
         run: |
-          sudo apt-get update && sudo apt-get install -y gnupg software-properties-common curl
-          curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-          sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-          sudo apt-get update && sudo apt-get install -y terraform
+          aws ecs update-service --cluster group-3-ecs-cluster-${{ github.ref_name }} --service group-3-ecs-service-${{ github.ref_name }} --desired-count 0 || true
+          aws ecs delete-service --cluster group-3-ecs-cluster-${{ github.ref_name }} --service group-3-ecs-service-${{ github.ref_name }} --force || true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        continue-on-error: true
 
-      - name: Destroy infrastructure
+      - name: Wait for ECS Service Deletion
+        run: sleep 60
+
+      - name: Deregister ECS Task Definition
         run: |
-          cd infrastructure/terraform
-          terraform init
-          terraform destroy -auto-approve -var="branch_name=${{ github.event.inputs.branch_name }}"
+          TASK_DEFINITIONS=$(aws ecs list-task-definitions --family-prefix group-3-ecs-task-${{ github.ref_name }} --query "taskDefinitionArns" --output text)
+          for task_def in $TASK_DEFINITIONS; do
+            aws ecs deregister-task-definition --task-definition $task_def || true
+          done
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        continue-on-error: true
 
-         
-          
+      - name: Delete ECS Cluster
+        run: |
+          aws ecs delete-cluster --cluster group-3-ecs-cluster-${{ github.ref_name }} || true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        continue-on-error: true
+
+      - name: Delete ECR Repository
+        run: |
+          aws ecr delete-repository --repository-name group-3-ecr-repo-${{ github.ref_name }} --force || true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        continue-on-error: true
+
+      - name: Delete ALB
+        run: |
+          aws elbv2 delete-load-balancer --load-balancer-arn $(aws elbv2 describe-load-balancers --names group-3-alb-${{ github.ref_name }} --query "LoadBalancers[0].LoadBalancerArn" --output text) || true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        continue-on-error: true
+
+      - name: Delete ALB Target Group
+        run: |
+          aws elbv2 delete-target-group --target-group-arn $(aws elbv2 describe-target-groups --names group-3-tg-${{ github.ref_name }} --query "TargetGroups[0].TargetGroupArn" --output text) || true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        continue-on-error: true
+
+      - name: Delete VPC Endpoints
+        run: |
+          aws ec2 delete-vpc-endpoints --vpc-endpoint-ids $(aws ec2 describe-vpc-endpoints --filters Name=service-name,Values="com.amazonaws.us-east-1.ecr.api" "com.amazonaws.us-east-1.ecr.dkr" --query "VpcEndpoints[*].VpcEndpointId" --output text) || true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        continue-on-error: true
+
+      - name: Delete Security Group
+        run: |
+          aws ec2 delete-security-group --group-id $(aws ec2 describe-security-groups --filters Name=group-name,Values=group-3-ecs-task-execution-role-${{ github.ref_name }} --query "SecurityGroups[0].GroupId" --output text) || true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        continue-on-error: true
+
+      - name: Delete Network Interfaces
+        run: |
+          aws ec2 describe-network-interfaces --filters Name=vpc-id,Values=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=group-3-netflix-clone-vpc-${{ github.ref_name }} --query "Vpcs[0].VpcId" --output text) --query "NetworkInterfaces[*].NetworkInterfaceId" --output text | xargs -n1 aws ec2 delete-network-interface --network-interface-id || true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        continue-on-error: true
+
+      - name: Delete IAM Role
+        run: |
+          aws iam delete-role --role-name group-3-ecs-task-execution-role-${{ github.ref_name }} || true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        continue-on-error: true
+
+      - name: Delete Subnets
+        run: |
+          aws ec2 delete-subnet --subnet-id $(aws ec2 describe-subnets --filters Name=vpc-id,Values=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=group-3-netflix-clone-vpc-${{ github.ref_name }} --query "Vpcs[0].VpcId" --output text) --query "Subnets[*].SubnetId" --output text) || true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        continue-on-error: true
+
+      - name: Delete Internet Gateway
+        run: |
+          aws ec2 delete-internet-gateway --internet-gateway-id $(aws ec2 describe-internet-gateways --filters Name=attachment.vpc-id,Values=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=group-3-netflix-clone-vpc-${{ github.ref_name }} --query "Vpcs[0].VpcId" --output text) --query "InternetGateways[0].InternetGatewayId" --output text) || true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        continue-on-error: true
+
+      - name: Delete Route Table
+        run: |
+          aws ec2 delete-route-table --route-table-id $(aws ec2 describe-route-tables --filters Name=vpc-id,Values=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=group-3-netflix-clone-vpc-${{ github.ref_name }} --query "Vpcs[0].VpcId" --output text) --query "RouteTables[0].RouteTableId" --output text) || true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        continue-on-error: true
+
+      - name: Delete VPC
+        run: |
+          aws ec2 delete-vpc --vpc-id $(aws ec2 describe-vpcs --filters Name=tag:Name,Values=group-3-netflix-clone-vpc-${{ github.ref_name }} --query "Vpcs[0].VpcId" --output text) || true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        continue-on-error: true

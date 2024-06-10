@@ -1,18 +1,24 @@
 name: CI/CD Pipeline for Backend
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - prod
       - uat
       - dev
-      - feature/*
     paths:
       - 'backend/**'
-      - 'infrastructure/terraform/**'
+      - 'infrastructure/terraform/backend/**'
+  # pull_request:
+  #   types: [closed]
+  #   branches:
+  #     - prod
+  #     - uat
+  #     - dev
 
 jobs:
-  build:
+  build-backend:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,9 +37,8 @@ jobs:
 
       - name: Run tests
         env:
-          PYTHONPATH: ${{ github.workspace }}/backend/src
+          PYTHONPATH: ${{ github.workspace }}/backend
         run: |
-          export PYTHONPATH=${{ github.workspace }}/backend/src
           python -m unittest discover -s backend/tests
 
       - name: Configure AWS credentials
@@ -43,11 +48,27 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
+      - name: Create Terraform state S3 bucket if it does not exist
+        run: |
+          if ! aws s3api head-bucket --bucket group-3-terraform-state 2>/dev/null; then
+            aws s3api create-bucket --bucket group-3-terraform-state --region us-east-1
+          fi
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+
       - name: Deploy infrastructure
         run: |
-          cd infrastructure/terraform
-          terraform init
-          terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}"
+          cd infrastructure/terraform/backend
+          terraform init \
+          -backend-config="bucket=group-3-terraform-state" \
+          -backend-config="key=group-3-terraform-state/terraform.tfstate" \
+          -backend-config="region=us-east-1"
+          terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}" \
+          -var="tmdb_api_key=${{ secrets.TMDB_API_KEY }}" \
+          -var="secret_key=${{ secrets.SECRET_KEY }}" \
+          -var "route53_zone_id=${{ secrets.ROUTE53_ZONE_ID }}"
 
       - name: Build and push Docker image
         run: |
@@ -55,10 +76,19 @@ jobs:
           docker build -t netflix_clone_backend .
           docker tag netflix_clone_backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
-        working-directory: backend/src
+        working-directory: backend
 
       - name: Update ECS service
         run: |
           aws ecs update-service --cluster group-3-ecs-cluster-${{ github.ref_name }} --service group-3-ecs-service-${{ github.ref_name }} --force-new-deployment
 
-          
+      - name: Get ALB URL
+        id: get-alb-url
+        run: |
+          alb_url=$(aws elbv2 describe-load-balancers --names group-3-alb-${{ github.ref_name }} --query 'LoadBalancers[0].DNSName' --output text)
+          echo "::set-output name=alb_url::$alb_url"
+
+      - name: Store ALB URL in Parameter Store
+        run: |
+          aws ssm put-parameter --name "/group-3/backend-alb-url" --value "${{ steps.get-alb-url.outputs.alb_url }}" --type "String" --overwrite
+
