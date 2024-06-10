@@ -67,6 +67,8 @@ jobs:
     runs-on: ubuntu-latest 
     needs: [build-frontend,code-unit-testing]  
     steps:
+        - name: Checkout code
+          uses: actions/checkout@v2
         - name: Configure AWS credentials
           uses: aws-actions/configure-aws-credentials@v1
           with:
@@ -79,11 +81,11 @@ jobs:
           run: |
             alb_url=$(aws ssm get-parameter --name "/group-3/backend-alb-url" --query "Parameter.Value" --output text)
             echo "::set-output name=alb_url::$alb_url"
-        # 
-        # - name: Set Environment Variable
-          # run: |
-            # cd frontend
-            # echo "REACT_APP_BACKEND_URL=${{ steps.fetch-alb-url.outputs.alb_url }}" >> frontend/.env
+        
+        - name: Set Environment Variable
+          run: |
+            cd frontend
+            echo "REACT_APP_BACKEND_URL=${{ steps.fetch-alb-url.outputs.alb_url }}" >> frontend/.env
         
         - name: Deploy infrastructure
           run: |
