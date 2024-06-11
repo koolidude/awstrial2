@@ -24,6 +24,11 @@ jobs:
         with:
           node-version: '14'
 
+      - name: Set Environment Variable
+        run: |
+          echo "REACT_APP_BACKEND_URL=https://group-3-backend-${{ github.ref_name }}.sctp-sandbox.com:5000" >> frontend/.env
+          cat frontend/.env  # Print the .env file to verify its contents
+
       - name: Install dependencies
         run: npm install
         working-directory: frontend
@@ -46,11 +51,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-
-      - name: Set Environment Variable
-        run: |
-          echo "REACT_APP_BACKEND_URL=https://group-3-backend-${{ github.ref_name }}.sctp-sandbox.com:5000" >> frontend/.env
-          cat frontend/.env  # Print the .env file to verify its contents
 
       - name: Deploy infrastructure
         run: |
