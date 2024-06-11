@@ -120,6 +120,4 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 }
 
-#test
-#test
-#test
+#TEST
