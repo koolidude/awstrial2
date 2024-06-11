@@ -404,3 +404,5 @@ resource "aws_route53_record" "cname" {
   ttl     = 60
   records = [aws_lb.main.dns_name]
 }
+
+#TEST
