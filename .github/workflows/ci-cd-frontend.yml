@@ -10,12 +10,6 @@ on:
     paths:
       - 'frontend/**'
       - 'infrastructure/terraform/frontend/**'
-  # pull_request:
-  #   types: [closed]
-  #   branches:
-  #     - prod
-  #     - uat
-  #     - dev
 
 jobs:
   build-frontend:
@@ -53,17 +47,9 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Fetch Backend ALB URL from Parameter Store
-        id: fetch-alb-url
-        run: |
-          alb_url=$(aws ssm get-parameter --name "/group-3/backend-alb-url" --query "Parameter.Value" --output text)
-          echo "::set-output name=alb_url::$alb_url"
-      
       - name: Set Environment Variable
-        run: |
-          echo "REACT_APP_BRANCH_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
-          echo "REACT_APP_BACKEND_URL=${{ steps.fetch-alb-url.outputs.alb_url }}" >> frontend/.env
-      
+        run: echo "REACT_APP_BACKEND_URL=https://group-3-backend-${{ github.ref_name }}.sctp-sandbox.com:5000" >> frontend/.env
+
       - name: Deploy infrastructure
         run: |
           cd infrastructure/terraform/frontend
@@ -71,8 +57,7 @@ jobs:
           terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}" || terraform refresh -var="branch_name=${{ github.ref_name }}"
 
       - name: Sync S3 bucket
-        run: |
-          aws s3 sync build s3://group-3-frontend-${{ github.ref_name }} --delete
+        run: aws s3 sync build s3://group-3-frontend-${{ github.ref_name }} --delete
         working-directory: frontend
 
       - name: Set S3 Public Access Block
@@ -101,10 +86,8 @@ jobs:
 
       - name: Fetch CloudFront Distribution ID
         id: cloudfront
-        run: |
-          echo "::set-output name=distribution_id::$(terraform output -raw cloudfront_distribution_id)"
+        run: echo "::set-output name=distribution_id::$(terraform output -raw cloudfront_distribution_id)"
         working-directory: infrastructure/terraform/frontend
 
       - name: Invalidate CloudFront cache
-        run: |
-          aws cloudfront create-invalidation --distribution-id ${{ steps.cloudfront.outputs.distribution_id }} --paths "/*"
+        run: aws cloudfront create-invalidation --distribution-id ${{ steps.cloudfront.outputs.distribution_id }} --paths "/*"

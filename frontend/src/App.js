@@ -5,7 +5,7 @@ function App() {
     const [movies, setMovies] = useState([]);
 
     useEffect(() => {
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://group-3-backend-uat.sctp-sandbox.com:5000' || 'https://group-3-backend-dev.sctp-sandbox.com:5000' || 'https://group-3-backend-prod.sctp-sandbox.com:5000';
+        const backendUrl = process.env.REACT_APP_BACKEND_URL;
         console.log('Backend URL:', backendUrl);
         fetch(`${backendUrl}/movies`)
             .then(response => {
