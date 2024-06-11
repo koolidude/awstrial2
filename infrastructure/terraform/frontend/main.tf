@@ -128,3 +128,5 @@ resource "aws_route53_record" "frontend_cname" {
   ttl     = 60
   records = [aws_cloudfront_distribution.frontend.domain_name]
 }
+
+#TEST
