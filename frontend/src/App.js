@@ -7,12 +7,6 @@ function App() {
     useEffect(() => {
         const backendUrl = process.env.REACT_APP_BACKEND_URL;
         console.log('Backend URL:', backendUrl);
-
-        if (!backendUrl) {
-            console.error('REACT_APP_BACKEND_URL is not set');
-            return;
-        }
-
         fetch(`${backendUrl}/movies`)
             .then(response => {
                 if (!response.ok) {
