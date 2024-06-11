@@ -1,15 +1,12 @@
-name: Destroy AWS Infrastructure
+
+name: Destroy AWS Resources
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - destroy
 
 jobs:
   destroy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -21,15 +18,146 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Set up Terraform
+      - name: Destroy Resources
         run: |
-          sudo apt-get update && sudo apt-get install -y gnupg software-properties-common curl
-          curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-          sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-          sudo apt-get update && sudo apt-get install -y terraform
+          set -e
 
-      - name: Destroy infrastructure
-        run: |
-          cd infrastructure/terraform
-          terraform init
-          terraform destroy -auto-approve -var="branch_name=${{ github.event.inputs.branch_name }}"
+          # Function to delete resources by type
+          delete_resources_by_type() {
+            local resource_type=$1
+            local list_command=$2
+            local delete_command=$3
+            local name_pattern="Group-3"
+
+            echo "Deleting $resource_type resources with name pattern $name_pattern"
+            while true; do
+              resources=$(eval "$list_command" || true)
+              if [[ -z "$resources" ]]; then
+                echo "No $resource_type resources found with name pattern $name_pattern"
+                break
+              fi
+
+              for resource in $resources; do
+                echo "Deleting $resource_type resource: $resource"
+                eval "$delete_command $resource" || true
+              done
+            done
+          }
+
+          # Polling function to wait for resource deletion
+          wait_for_deletion() {
+            local resource_type=$1
+            local list_command=$2
+            local name_pattern="Group-3"
+
+            echo "Waiting for $resource_type resources with name pattern $name_pattern to be deleted"
+            while true; do
+              resources=$(eval "$list_command" || true)
+              if [[ -z "$resources" ]]; then
+                echo "$resource_type resources with name pattern $name_pattern are deleted"
+                break
+              fi
+
+              echo "Still waiting for $resource_type resources to be deleted..."
+              sleep 10
+            done
+          }
+
+          # Delete ECS services
+          ecs_clusters=$(aws ecs list-clusters --query 'clusterArns' --output text || true)
+          for cluster in $ecs_clusters; do
+            delete_resources_by_type "ECS service" \
+              "aws ecs list-services --cluster $cluster --query 'serviceArns[?contains(@, \`Group-3\`)]' --output text" \
+              "aws ecs update-service --cluster $cluster --service \$resource --desired-count 0 && aws ecs delete-service --cluster $cluster --service"
+            wait_for_deletion "ECS service" "aws ecs list-services --cluster $cluster --query 'serviceArns[?contains(@, \`Group-3\`)]' --output text"
+          done
+
+          # Delete ECS task definitions
+          delete_resources_by_type "ECS task definition" \
+            "aws ecs list-task-definitions --query 'taskDefinitionArns[?contains(@, \`Group-3\`)]' --output text" \
+            "aws ecs deregister-task-definition --task-definition"
+          wait_for_deletion "ECS task definition" "aws ecs list-task-definitions --query 'taskDefinitionArns[?contains(@, \`Group-3\`)]' --output text"
+
+          # Delete ECS clusters
+          delete_resources_by_type "ECS cluster" \
+            "aws ecs list-clusters --query 'clusterArns[?contains(@, \`Group-3\`)]' --output text" \
+            "aws ecs delete-cluster --cluster"
+          wait_for_deletion "ECS cluster" "aws ecs list-clusters --query 'clusterArns[?contains(@, \`Group-3\`)]' --output text"
+
+          # Delete ECR repositories
+          delete_resources_by_type "ECR repository" \
+            "aws ecr describe-repositories --query 'repositories[?contains(repositoryName, \`Group-3\`)].repositoryName' --output text" \
+            "aws ecr delete-repository --repository-name --force"
+          wait_for_deletion "ECR repository" "aws ecr describe-repositories --query 'repositories[?contains(repositoryName, \`Group-3\`)].repositoryName' --output text"
+
+          # Delete Cloudwatch log groups
+          delete_resources_by_type "Cloudwatch log group" \
+            "aws logs describe-log-groups --query 'logGroups[?contains(logGroupName, \`Group-3\`)].logGroupName' --output text" \
+            "aws logs delete-log-group --log-group-name"
+          wait_for_deletion "Cloudwatch log group" "aws logs describe-log-groups --query 'logGroups[?contains(logGroupName, \`Group-3\`)].logGroupName' --output text"
+
+          # Delete S3 buckets
+          delete_resources_by_type "S3 bucket" \
+            "aws s3api list-buckets --query 'Buckets[?contains(Name, \`Group-3\`)].Name' --output text" \
+            "aws s3 rb s3://\$resource --force"
+          wait_for_deletion "S3 bucket" "aws s3api list-buckets --query 'Buckets[?contains(Name, \`Group-3\`)].Name' --output text"
+
+          # Delete Cloudfront distributions
+          delete_resources_by_type "Cloudfront distribution" \
+            "aws cloudfront list-distributions --query 'DistributionList.Items[?contains(Id, \`Group-3\`)].Id' --output text" \
+            "aws cloudfront delete-distribution --id"
+          wait_for_deletion "Cloudfront distribution" "aws cloudfront list-distributions --query 'DistributionList.Items[?contains(Id, \`Group-3\`)].Id' --output text"
+
+          # Delete ACM certificates
+          delete_resources_by_type "ACM certificate" \
+            "aws acm list-certificates --query 'CertificateSummaryList[?contains(CertificateArn, \`Group-3\`)].CertificateArn' --output text" \
+            "aws acm delete-certificate --certificate-arn"
+          wait_for_deletion "ACM certificate" "aws acm list-certificates --query 'CertificateSummaryList[?contains(CertificateArn, \`Group-3\`)].CertificateArn' --output text"
+
+          # Delete NAT gateways
+          delete_resources_by_type "NAT gateway" \
+            "aws ec2 describe-nat-gateways --query 'NatGateways[?contains(NatGatewayId, \`Group-3\`)].NatGatewayId' --output text" \
+            "aws ec2 delete-nat-gateway --nat-gateway-id"
+          wait_for_deletion "NAT gateway" "aws ec2 describe-nat-gateways --query 'NatGateways[?contains(NatGatewayId, \`Group-3\`)].NatGatewayId' --output text"
+
+          # Delete VPC endpoints
+          delete_resources_by_type "VPC endpoint" \
+            "aws ec2 describe-vpc-endpoints --query 'VpcEndpoints[?contains(VpcEndpointId, \`Group-3\`)].VpcEndpointId' --output text" \
+            "aws ec2 delete-vpc-endpoints --vpc-endpoint-ids"
+          wait_for_deletion "VPC endpoint" "aws ec2 describe-vpc-endpoints --query 'VpcEndpoints[?contains(VpcEndpointId, \`Group-3\`)].VpcEndpointId' --output text"
+
+          # Delete Internet Gateways
+          delete_resources_by_type "Internet Gateway" \
+            "aws ec2 describe-internet-gateways --query 'InternetGateways[?contains(InternetGatewayId, \`Group-3\`)].InternetGatewayId' --output text" \
+            "aws ec2 delete-internet-gateway --internet-gateway-id"
+          wait_for_deletion "Internet Gateway" "aws ec2 describe-internet-gateways --query 'InternetGateways[?contains(InternetGatewayId, \`Group-3\`)].InternetGatewayId' --output text"
+
+          # Delete Route tables
+          delete_resources_by_type "Route table" \
+            "aws ec2 describe-route-tables --query 'RouteTables[?contains(RouteTableId, \`Group-3\`)].RouteTableId' --output text" \
+            "aws ec2 delete-route-table --route-table-id"
+          wait_for_deletion "Route table" "aws ec2 describe-route-tables --query 'RouteTables[?contains(RouteTableId, \`Group-3\`)].RouteTableId' --output text"
+
+          # Delete Subnets
+          delete_resources_by_type "Subnet" \
+            "aws ec2 describe-subnets --query 'Subnets[?contains(SubnetId, \`Group-3\`)].SubnetId' --output text" \
+            "aws ec2 delete-subnet --subnet-id"
+          wait_for_deletion "Subnet" "aws ec2 describe-subnets --query 'Subnets[?contains(SubnetId, \`Group-3\`)].SubnetId' --output text"
+
+          # Delete VPCs
+          delete_resources_by_type "VPC" \
+            "aws ec2 describe-vpcs --query 'Vpcs[?contains(VpcId, \`Group-3\`)].VpcId' --output text" \
+            "aws ec2 delete-vpc --vpc-id"
+          wait_for_deletion "VPC" "aws ec2 describe-vpcs --query 'Vpcs[?contains(VpcId, \`Group-3\`)].VpcId' --output text"
+
+          # Delete Security Groups
+          delete_resources_by_type "Security Group" \
+            "aws ec2 describe-security-groups --query 'SecurityGroups[?contains(GroupId, \`Group-3\`)].GroupId' --output text" \
+            "aws ec2 delete-security-group --group-id"
+          wait_for_deletion "Security Group" "aws ec2 describe-security-groups --query 'SecurityGroups[?contains(GroupId, \`Group-3\`)].GroupId' --output text"
+
+          # Delete Route53 Records
+          delete_resources_by_type "Route53 record" \
+            "aws route53 list-resource-record-sets --hosted-zone-id ${{ secrets.ROUTE53_ZONE_ID }} --query 'ResourceRecordSets[?contains(Name, \`Group-3\`)].Name' --output text" \
+            "aws route53 change-resource-record-sets --hosted-zone-id ${{ secrets.ROUTE53_ZONE_ID }} --change-batch"
+          wait_for_deletion "Route53 record" "aws route53 list-resource-record-sets --hosted-zone-id ${{ secrets.ROUTE53_ZONE_ID }} --query 'ResourceRecordSets[?contains(Name, \`Group-3\`)].Name' --output text"
