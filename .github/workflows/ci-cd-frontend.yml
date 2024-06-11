@@ -52,17 +52,10 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-
-      - name: Fetch Backend ALB URL from Parameter Store
-        id: fetch-alb-url
-        run: |
-          alb_url=$(aws ssm get-parameter --name "/group-3/backend-alb-url" --query "Parameter.Value" --output text)
-          echo "::set-output name=alb_url::$alb_url"
       
       - name: Set Environment Variable
         run: |
-          echo "REACT_APP_BRANCH_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
-          echo "REACT_APP_BACKEND_URL=${{ steps.fetch-alb-url.outputs.alb_url }}" >> frontend/.env
+          echo "REACT_APP_BACKEND_URL=https://group-3-backend-${{ github.ref_name }}.sctp-sandbox.com:5000" >> frontend/.env
       
       - name: Deploy infrastructure
         run: |
