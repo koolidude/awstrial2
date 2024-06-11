@@ -5,6 +5,7 @@ function App() {
     const [movies, setMovies] = useState([]);
 
     useEffect(() => {
+
         const backendUrl = process.env.REACT_APP_BACKEND_URL;
         console.log('Backend URL:', backendUrl);
         fetch(`${backendUrl}/movies`)

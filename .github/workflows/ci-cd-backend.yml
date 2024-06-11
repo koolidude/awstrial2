@@ -91,4 +91,3 @@ jobs:
       - name: Store ALB URL in Parameter Store
         run: |
           aws ssm put-parameter --name "/group-3/backend-alb-url" --value "${{ steps.get-alb-url.outputs.alb_url }}" --type "String" --overwrite
-

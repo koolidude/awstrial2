@@ -3,6 +3,7 @@ from src.main import app
 from src.config import Config
 
 class MainTestCase(unittest.TestCase):
+  
     def setUp(self):
         self.app = app.test_client()
         self.app.testing = True

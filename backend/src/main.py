@@ -12,6 +12,7 @@ def home():
 
 @app.route('/movies')
 def get_movies():
+
     # Fetch popular movies from TMDB API using the API key from config
     response = requests.get(f"https://api.themoviedb.org/3/movie/popular?api_key={Config.TMDB_API_KEY}")
     return jsonify(response.json())
