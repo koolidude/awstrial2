@@ -120,5 +120,11 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 }
 
-#TEST
-#TEST
+# Route53 CNAME record pointing to CloudFront distribution
+resource "aws_route53_record" "frontend_cname" {
+  zone_id = var.route53_zone_id
+  name    = "group-3-frontend-${var.branch_name}.sctp-sandbox.com"
+  type    = "CNAME"
+  ttl     = 60
+  records = [aws_cloudfront_distribution.frontend.domain_name]
+}
