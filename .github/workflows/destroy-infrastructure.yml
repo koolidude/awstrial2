@@ -1,4 +1,4 @@
-name: Destroy Infrastructure
+name: Destroy AWS Resources
 
 on:
   workflow_dispatch:
@@ -6,7 +6,6 @@ on:
 jobs:
   destroy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -18,135 +17,88 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Delete ECS Service
+      - name: Destroy Resources
         run: |
-          aws ecs update-service --cluster group-3-ecs-cluster-${{ github.ref_name }} --service group-3-ecs-service-${{ github.ref_name }} --desired-count 0 || true
-          aws ecs delete-service --cluster group-3-ecs-cluster-${{ github.ref_name }} --service group-3-ecs-service-${{ github.ref_name }} --force || true
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-        continue-on-error: true
+          set -e
+          
+          # Function to delete resources by name pattern
+          delete_resources_by_pattern() {
+            local resource_type=$1
+            local name_pattern=$2
+            local delete_command=$3
+            local list_command=$4
 
-      - name: Wait for ECS Service Deletion
-        run: sleep 60
+            echo "Deleting $resource_type resources with name pattern $name_pattern"
+            while true; do
+              resources=$(eval "$list_command")
+              if [[ -z "$resources" ]]; then
+                echo "No $resource_type resources found with name pattern $name_pattern"
+                break
+              fi
 
-      - name: Deregister ECS Task Definition
-        run: |
-          TASK_DEFINITIONS=$(aws ecs list-task-definitions --family-prefix group-3-ecs-task-${{ github.ref_name }} --query "taskDefinitionArns" --output text)
-          for task_def in $TASK_DEFINITIONS; do
-            aws ecs deregister-task-definition --task-definition $task_def || true
-          done
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-        continue-on-error: true
+              for resource in $resources; do
+                echo "Deleting $resource_type resource: $resource"
+                eval "$delete_command $resource"
+              done
+            done
+          }
 
-      - name: Delete ECS Cluster
-        run: |
-          aws ecs delete-cluster --cluster group-3-ecs-cluster-${{ github.ref_name }} || true
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-        continue-on-error: true
+          # Delete Cloudfront distributions
+          delete_resources_by_pattern "Cloudfront" "Group-3" "aws cloudfront delete-distribution --id" "aws cloudfront list-distributions --query 'DistributionList.Items[?contains(Id, \`Group-3\`)].Id' --output text"
 
-      - name: Delete ECR Repository
-        run: |
-          aws ecr delete-repository --repository-name group-3-ecr-repo-${{ github.ref_name }} --force || true
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-        continue-on-error: true
+          # Delete S3 buckets
+          delete_resources_by_pattern "S3 bucket" "Group-3" "aws s3 rb s3://" "aws s3api list-buckets --query 'Buckets[?contains(Name, \`Group-3\`)].Name' --output text"
 
-      - name: Delete ALB
-        run: |
-          aws elbv2 delete-load-balancer --load-balancer-arn $(aws elbv2 describe-load-balancers --names group-3-alb-${{ github.ref_name }} --query "LoadBalancers[0].LoadBalancerArn" --output text) || true
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-        continue-on-error: true
+          # Delete ACM certificates
+          delete_resources_by_pattern "ACM certificate" "Group-3" "aws acm delete-certificate --certificate-arn" "aws acm list-certificates --query 'CertificateSummaryList[?contains(CertificateArn, \`Group-3\`)].CertificateArn' --output text"
 
-      - name: Delete ALB Target Group
-        run: |
-          aws elbv2 delete-target-group --target-group-arn $(aws elbv2 describe-target-groups --names group-3-tg-${{ github.ref_name }} --query "TargetGroups[0].TargetGroupArn" --output text) || true
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-        continue-on-error: true
+          # Delete NAT gateways
+          delete_resources_by_pattern "NAT gateway" "Group-3" "aws ec2 delete-nat-gateway --nat-gateway-id" "aws ec2 describe-nat-gateways --query 'NatGateways[?contains(NatGatewayId, \`Group-3\`)].NatGatewayId' --output text"
 
-      - name: Delete VPC Endpoints
-        run: |
-          aws ec2 delete-vpc-endpoints --vpc-endpoint-ids $(aws ec2 describe-vpc-endpoints --filters Name=service-name,Values="com.amazonaws.us-east-1.ecr.api" "com.amazonaws.us-east-1.ecr.dkr" --query "VpcEndpoints[*].VpcEndpointId" --output text) || true
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-        continue-on-error: true
+          # Delete VPC endpoints
+          delete_resources_by_pattern "VPC endpoint" "Group-3" "aws ec2 delete-vpc-endpoints --vpc-endpoint-ids" "aws ec2 describe-vpc-endpoints --query 'VpcEndpoints[?contains(VpcEndpointId, \`Group-3\`)].VpcEndpointId' --output text"
 
-      - name: Delete Security Group
-        run: |
-          aws ec2 delete-security-group --group-id $(aws ec2 describe-security-groups --filters Name=group-name,Values=group-3-ecs-task-execution-role-${{ github.ref_name }} --query "SecurityGroups[0].GroupId" --output text) || true
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-        continue-on-error: true
+          # Delete ECS task definitions
+          delete_resources_by_pattern "ECS task definition" "Group-3" "aws ecs deregister-task-definition --task-definition" "aws ecs list-task-definitions --query 'taskDefinitionArns[?contains(@, \`Group-3\`)]' --output text"
 
-      - name: Delete Network Interfaces
-        run: |
-          aws ec2 describe-network-interfaces --filters Name=vpc-id,Values=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=group-3-netflix-clone-vpc-${{ github.ref_name }} --query "Vpcs[0].VpcId" --output text) --query "NetworkInterfaces[*].NetworkInterfaceId" --output text | xargs -n1 aws ec2 delete-network-interface --network-interface-id || true
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-        continue-on-error: true
+          # Delete ECS services
+          delete_resources_by_pattern "ECS service" "Group-3" "aws ecs delete-service --cluster Group-3-ecs-cluster --service" "aws ecs list-services --cluster Group-3-ecs-cluster --query 'serviceArns[?contains(@, \`Group-3\`)]' --output text"
 
-      - name: Delete IAM Role
-        run: |
-          aws iam delete-role --role-name group-3-ecs-task-execution-role-${{ github.ref_name }} || true
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-        continue-on-error: true
+          # Delete ECS clusters
+          delete_resources_by_pattern "ECS cluster" "Group-3" "aws ecs delete-cluster --cluster" "aws ecs list-clusters --query 'clusterArns[?contains(@, \`Group-3\`)]' --output text"
 
-      - name: Delete Subnets
-        run: |
-          aws ec2 delete-subnet --subnet-id $(aws ec2 describe-subnets --filters Name=vpc-id,Values=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=group-3-netflix-clone-vpc-${{ github.ref_name }} --query "Vpcs[0].VpcId" --output text) --query "Subnets[*].SubnetId" --output text) || true
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-        continue-on-error: true
+          # Delete ECR repositories
+          delete_resources_by_pattern "ECR repository" "Group-3" "aws ecr delete-repository --repository-name" "aws ecr describe-repositories --query 'repositories[?contains(repositoryName, \`Group-3\`)].repositoryName' --output text"
 
-      - name: Delete Internet Gateway
-        run: |
-          aws ec2 delete-internet-gateway --internet-gateway-id $(aws ec2 describe-internet-gateways --filters Name=attachment.vpc-id,Values=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=group-3-netflix-clone-vpc-${{ github.ref_name }} --query "Vpcs[0].VpcId" --output text) --query "InternetGateways[0].InternetGatewayId" --output text) || true
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-        continue-on-error: true
+          # Delete Cloudwatch log groups
+          delete_resources_by_pattern "Cloudwatch log group" "Group-3" "aws logs delete-log-group --log-group-name" "aws logs describe-log-groups --query 'logGroups[?contains(logGroupName, \`Group-3\`)].logGroupName' --output text"
 
-      - name: Delete Route Table
-        run: |
-          aws ec2 delete-route-table --route-table-id $(aws ec2 describe-route-tables --filters Name=vpc-id,Values=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=group-3-netflix-clone-vpc-${{ github.ref_name }} --query "Vpcs[0].VpcId" --output text) --query "RouteTables[0].RouteTableId" --output text) || true
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-        continue-on-error: true
+          # Delete IAM roles
+          delete_resources_by_pattern "IAM role" "Group-3" "aws iam delete-role --role-name" "aws iam list-roles --query 'Roles[?contains(RoleName, \`Group-3\`)].RoleName' --output text"
 
-      - name: Delete VPC
-        run: |
-          aws ec2 delete-vpc --vpc-id $(aws ec2 describe-vpcs --filters Name=tag:Name,Values=group-3-netflix-clone-vpc-${{ github.ref_name }} --query "Vpcs[0].VpcId" --output text) || true
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-        continue-on-error: true
+          # Delete Load Balancer listeners
+          delete_resources_by_pattern "Load Balancer listener" "Group-3" "aws elbv2 delete-listener --listener-arn" "aws elbv2 describe-listeners --query 'Listeners[?contains(ListenerArn, \`Group-3\`)].ListenerArn' --output text"
+
+          # Delete Load Balancer target groups
+          delete_resources_by_pattern "Load Balancer target group" "Group-3" "aws elbv2 delete-target-group --target-group-arn" "aws elbv2 describe-target-groups --query 'TargetGroups[?contains(TargetGroupArn, \`Group-3\`)].TargetGroupArn' --output text"
+
+          # Delete Load Balancers
+          delete_resources_by_pattern "Load Balancer" "Group-3" "aws elbv2 delete-load-balancer --load-balancer-arn" "aws elbv2 describe-load-balancers --query 'LoadBalancers[?contains(LoadBalancerArn, \`Group-3\`)].LoadBalancerArn' --output text"
+
+          # Delete Internet Gateways
+          delete_resources_by_pattern "Internet Gateway" "Group-3" "aws ec2 delete-internet-gateway --internet-gateway-id" "aws ec2 describe-internet-gateways --query 'InternetGateways[?contains(InternetGatewayId, \`Group-3\`)].InternetGatewayId' --output text"
+
+          # Delete Route tables
+          delete_resources_by_pattern "Route table" "Group-3" "aws ec2 delete-route-table --route-table-id" "aws ec2 describe-route-tables --query 'RouteTables[?contains(RouteTableId, \`Group-3\`)].RouteTableId' --output text"
+
+          # Delete Subnets
+          delete_resources_by_pattern "Subnet" "Group-3" "aws ec2 delete-subnet --subnet-id" "aws ec2 describe-subnets --query 'Subnets[?contains(SubnetId, \`Group-3\`)].SubnetId' --output text"
+
+          # Delete VPCs
+          delete_resources_by_pattern "VPC" "Group-3" "aws ec2 delete-vpc --vpc-id" "aws ec2 describe-vpcs --query 'Vpcs[?contains(VpcId, \`Group-3\`)].VpcId' --output text"
+
+          # Delete Security Groups
+          delete_resources_by_pattern "Security Group" "Group-3" "aws ec2 delete-security-group --group-id" "aws ec2 describe-security-groups --query 'SecurityGroups[?contains(GroupId, \`Group-3\`)].GroupId' --output text"
+
+          # Delete Route53 Records
+          delete_resources_by_pattern "Route53 record" "Group-3" "aws route53 change-resource-record-sets --hosted-zone-id ${{ secrets.ROUTE53_ZONE_ID }} --change-batch" "aws route53 list-resource-record-sets --hosted-zone-id ${{ secrets.ROUTE53_ZONE_ID }} --query 'ResourceRecordSets[?contains(Name, \`Group-3\`)].Name' --output text"
