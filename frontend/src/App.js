@@ -5,8 +5,15 @@ function App() {
     const [movies, setMovies] = useState([]);
 
     useEffect(() => {
-        fetch('http://localhost:5000/movies')
-            .then(response => response.json())
+        const backendUrl = process.env.REACT_APP_BACKEND_URL;
+        console.log('Backend URL:', backendUrl);
+        fetch(`${backendUrl}/movies`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => setMovies(data.results))
             .catch(error => console.error('Error fetching movies:', error));
     }, []);
