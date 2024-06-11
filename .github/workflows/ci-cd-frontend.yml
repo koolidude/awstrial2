@@ -6,8 +6,7 @@ on:
     branches:
       - prod
       - uat
-      - dev
-      - feature-*
+  #    - dev
     paths:
       - 'frontend/**'
       - 'infrastructure/terraform/frontend/**'
