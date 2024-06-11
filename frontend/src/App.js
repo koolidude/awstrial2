@@ -6,19 +6,9 @@ function App() {
 
     useEffect(() => {
         const backendUrl = process.env.REACT_APP_BACKEND_URL;
+        console.log('Backend URL:', backendUrl);
         fetch(`${backendUrl}/movies`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.text().then(text => {
-                    try {
-                        return JSON.parse(text);
-                    } catch (error) {
-                        throw new Error('Invalid JSON response');
-                    }
-                });
-            })
+            .then(response => response.json())
             .then(data => setMovies(data.results))
             .catch(error => console.error('Error fetching movies:', error));
     }, []);
