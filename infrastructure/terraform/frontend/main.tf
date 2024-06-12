@@ -79,6 +79,37 @@ resource "aws_s3_bucket_policy" "frontend_bucket_policy" {
   })
 }
 
+# Create SSL Certificate with ACM
+resource "aws_acm_certificate" "frontend" {
+  domain_name       = "group-3-frontend-${var.branch_name}.sctp-sandbox.com"
+  validation_method = "DNS"
+
+  tags = {
+    Name = "group-3-acm-${var.branch_name}"
+  }
+}
+
+resource "aws_route53_record" "cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.frontend.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      type   = dvo.resource_record_type
+      record = dvo.resource_record_value
+    }
+  }
+
+  zone_id = var.route53_zone_id
+  name    = each.value.name
+  type    = each.value.type
+  records = [each.value.record]
+  ttl     = 60
+}
+
+resource "aws_acm_certificate_validation" "frontend" {
+  certificate_arn         = aws_acm_certificate.frontend.arn
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
+}
+
 # CloudFront distribution for serving the frontend content
 resource "aws_cloudfront_distribution" "frontend" {
   origin {
@@ -112,7 +143,10 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn            = aws_acm_certificate.frontend.arn
+    ssl_support_method             = "sni-only"
+    minimum_protocol_version       = "TLSv1.2_2019"
+    cloudfront_default_certificate = false
   }
 
   tags = {
@@ -128,5 +162,3 @@ resource "aws_route53_record" "frontend_cname" {
   ttl     = 60
   records = [aws_cloudfront_distribution.frontend.domain_name]
 }
-
-#TEST
