@@ -83,7 +83,7 @@ jobs:
           docker build -t netflix_clone_backend .
           docker tag netflix_clone_backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
-        working-directory: backend
+        working-directory: cd infrastructure/terraform/backend
 
   update-ecs-service:
     runs-on: ubuntu-latest
