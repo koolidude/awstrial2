@@ -13,7 +13,7 @@ on:
       - 'infrastructure/terraform/backend/**'
 
 jobs:
-  install-dependencies-and-unit-testing:
+  install-dependencies:
     runs-on: ubuntu-latest
     steps:
 
@@ -29,6 +29,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/src/requirements.txt
+  
+  code-unit-testing:
+    runs-on: ubuntu-latest
+    needs: install-dependencies
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v2
 
       - name: Run tests
         env:
@@ -38,8 +46,11 @@ jobs:
   
   create-aws-resources:
     runs-on: ubuntu-latest
-    needs: install-dependencies-and-unit-testing
+    needs: code-unit-testing
     steps: 
+
+      - name: Checkout code
+        uses: actions/checkout@v2
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -75,7 +86,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: create-aws-resources
     steps:  
-          
+      
+      - name: Checkout code
+        uses: actions/checkout@v2
+
       - name: Build and push Docker image
         run: |
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
@@ -88,6 +102,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-push-docker-image
     steps:  
+
+      - name: Checkout code
+        uses: actions/checkout@v2
 
       - name: Update ECS service
         run: |
