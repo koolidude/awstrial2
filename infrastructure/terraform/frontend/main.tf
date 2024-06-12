@@ -43,6 +43,69 @@ resource "aws_iam_role_policy" "s3_bucket_policy" {
   })
 }
 
+# Create IAM policy for managing CloudFront and Route53
+resource "aws_iam_policy" "cloudfront_route53_policy" {
+  name        = "group-3-cloudfront-route53-policy"
+  description = "Policy for managing CloudFront and Route53 resources"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "cloudfront:CreateDistribution",
+          "cloudfront:UpdateDistribution",
+          "cloudfront:GetDistribution",
+          "cloudfront:DeleteDistribution",
+          "cloudfront:ListDistributions",
+          "cloudfront:CreateInvalidation",
+          "cloudfront:GetInvalidation",
+          "cloudfront:ListInvalidations"
+        ],
+        Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "route53:ListHostedZones",
+          "route53:GetHostedZone",
+          "route53:CreateHostedZone",
+          "route53:DeleteHostedZone",
+          "route53:ChangeResourceRecordSets",
+          "route53:ListResourceRecordSets",
+          "route53:GetChange"
+        ],
+        Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "s3:ListBucket",
+          "s3:GetBucketLocation",
+          "s3:CreateBucket",
+          "s3:DeleteBucket",
+          "s3:PutBucketPolicy",
+          "s3:GetBucketPolicy",
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject"
+        ],
+        Resource = [
+          "arn:aws:s3:::group-3-frontend-${var.branch_name}",
+          "arn:aws:s3:::group-3-frontend-${var.branch_name}/*"
+        ]
+      }
+    ]
+  })
+}
+
+# Attach CloudFront and Route53 policy to IAM role
+resource "aws_iam_role_policy_attachment" "cloudfront_route53_policy_attachment" {
+  role       = aws_iam_role.s3_bucket_policy_role.name
+  policy_arn = aws_iam_policy.cloudfront_route53_policy.arn
+}
+
 # S3 Bucket to store the frontend files
 resource "aws_s3_bucket" "frontend" {
   bucket = "group-3-frontend-${var.branch_name}"
@@ -145,13 +208,15 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 }
 
-# Route53 CNAME record pointing to CloudFront distribution
-resource "aws_route53_record" "frontend_cname" {
+# Route53 A record pointing to CloudFront distribution
+resource "aws_route53_record" "frontend_alias" {
   zone_id = var.route53_zone_id
   name    = "group-3-frontend-${var.branch_name}.sctp-sandbox.com"
-  type    = "CNAME"
-  ttl     = 60
-  records = [aws_cloudfront_distribution.frontend.domain_name]
-}
+  type    = "A"
 
-#TEST
+  alias {
+    name                   = aws_cloudfront_distribution.frontend.domain_name
+    zone_id                = aws_cloudfront_distribution.frontend.hosted_zone_id
+    evaluate_target_health = false
+  }
+}

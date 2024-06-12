@@ -51,7 +51,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-
+      
       - name: Deploy infrastructure
         run: |
           cd infrastructure/terraform/frontend
@@ -63,10 +63,6 @@ jobs:
         id: fetch-oai-arn
         run: |
           oai_arn=$(terraform output -raw cloudfront_oai_iam_arn)
-          if [ -z "$oai_arn" ]; then
-            echo "Error: CloudFront OAI IAM ARN not found"
-            exit 1
-          fi
           echo "CLOUDFRONT_OAI_IAM_ARN=$oai_arn" >> $GITHUB_ENV
         working-directory: infrastructure/terraform/frontend
 
