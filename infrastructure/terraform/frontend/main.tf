@@ -154,5 +154,4 @@ resource "aws_route53_record" "frontend_cname" {
   records = [aws_cloudfront_distribution.frontend.domain_name]
 }
 
-#test
-#test
+#TEST

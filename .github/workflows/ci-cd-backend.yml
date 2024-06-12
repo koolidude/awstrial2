@@ -61,6 +61,7 @@ jobs:
           -backend-config="region=us-east-1"
           terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}" \
           -var="tmdb_api_key=${{ secrets.TMDB_API_KEY }}" \
+          -var="youtube_api_key=${{ secrets.YOUTUBE_API_KEY }}" \
           -var="secret_key=${{ secrets.SECRET_KEY }}" \
           -var "route53_zone_id=${{ secrets.ROUTE53_ZONE_ID }}"
 
