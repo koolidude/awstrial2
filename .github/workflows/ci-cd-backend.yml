@@ -36,11 +36,6 @@ jobs:
         run: |
           python -m unittest discover -s backend/tests
   
-  create-aws-resources:
-    runs-on: ubuntu-latest
-    needs: build-backend
-    steps: 
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -73,7 +68,7 @@ jobs:
 
   build-and-push-docker-image:
     runs-on: ubuntu-latest
-    needs: create-aws-resources
+    needs: build-backend
     steps:  
       
       - name: Checkout code
