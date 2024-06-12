@@ -1,4 +1,5 @@
 name: CI/CD Pipeline for Backend
+run-name: ${{ github.actor }} is running Continuous Integration on GitHub Actions 🚀
 
 on:
   workflow_dispatch:
@@ -12,10 +13,10 @@ on:
       - 'infrastructure/terraform/backend/**'
 
 jobs:
-  build-backend:
+  start-build-backend:
     runs-on: ubuntu-latest
-
     steps:
+
       - name: Checkout code
         uses: actions/checkout@v2
 
@@ -23,17 +24,32 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.9'
+  
+  install-dependencies:
+    runs-on: ubuntu-latest
+    needs: start-build-backend
+    steps:    
 
-      - name: Install dependencies
+      - name: Install of dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/src/requirements.txt
+
+  code-unit-testing:
+    runs-on: ubuntu-latest
+    needs: install-dependencies
+    steps:  
 
       - name: Run tests
         env:
           PYTHONPATH: ${{ github.workspace }}/backend
         run: |
           python -m unittest discover -s backend/tests
+  
+  create-aws-resources:
+    runs-on: ubuntu-latest
+    needs: code-unit-testing
+    steps: 
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -41,7 +57,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-
+         
       - name: Create Terraform state S3 bucket if it does not exist
         run: |
           if ! aws s3api head-bucket --bucket group-3-terraform-state 2>/dev/null; then
@@ -65,6 +81,11 @@ jobs:
           -var="secret_key=${{ secrets.SECRET_KEY }}" \
           -var "route53_zone_id=${{ secrets.ROUTE53_ZONE_ID }}"
 
+  build-and-push-docker-image:
+    runs-on: ubuntu-latest
+    needs: create-aws-resources
+    steps:  
+          
       - name: Build and push Docker image
         run: |
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
@@ -72,6 +93,11 @@ jobs:
           docker tag netflix_clone_backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/group-3-ecr-repo-${{ github.ref_name }}:latest
         working-directory: backend
+
+  update-ecs-service:
+    runs-on: ubuntu-latest
+    needs: build-and-push-docker-image
+    steps:  
 
       - name: Update ECS service
         run: |
