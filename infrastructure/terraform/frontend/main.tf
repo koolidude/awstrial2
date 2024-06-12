@@ -49,6 +49,7 @@ resource "aws_s3_bucket" "frontend" {
 
   website {
     index_document = "index.html"
+    error_document = "error.html"  # Ensure an error document is specified
   }
 }
 
@@ -115,6 +116,9 @@ resource "aws_cloudfront_distribution" "frontend" {
   origin {
     domain_name = aws_s3_bucket.frontend.bucket_regional_domain_name
     origin_id   = "S3-${aws_s3_bucket.frontend.id}"
+    s3_origin_config {
+      origin_access_identity = aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path
+    }
   }
 
   enabled             = true
@@ -152,6 +156,11 @@ resource "aws_cloudfront_distribution" "frontend" {
   tags = {
     Name = "group-3-cloudfront-${var.branch_name}"
   }
+}
+
+# CloudFront Origin Access Identity
+resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
+  comment = "OAI for group-3-frontend-${var.branch_name}"
 }
 
 # Route53 CNAME record pointing to CloudFront distribution
