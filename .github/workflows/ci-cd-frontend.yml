@@ -52,18 +52,22 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-
+      
       - name: Set Environment Variable
-        run: |
-          echo "REACT_APP_BACKEND_URL=https://group-3-backend-${{ github.ref_name }}.sctp-sandbox.com:5000" >> frontend/.env
+        run: echo "REACT_APP_BACKEND_URL=https://group-3-backend-${{ github.ref_name }}.sctp-sandbox.com:5000" >> frontend/.env
 
       - name: Deploy infrastructure
-        id: deploy
         run: |
           cd infrastructure/terraform/frontend
           terraform init
-          terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}" -var "route53_zone_id=${{ secrets.ROUTE53_ZONE_ID }}" \
-          || terraform refresh -var="branch_name=${{ github.ref_name }}" -var "route53_zone_id=${{ secrets.ROUTE53_ZONE_ID }}"\
+          terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}" || terraform refresh -var="branch_name=${{ github.ref_name }}"
+
+      - name: Fetch CloudFront OAI IAM ARN
+        id: fetch-oai-arn
+        run: |
+          oai_arn=$(terraform output -raw cloudfront_oai_iam_arn)
+          echo "CLOUDFRONT_OAI_IAM_ARN=$oai_arn" >> $GITHUB_ENV
+        working-directory: infrastructure/terraform/frontend
 
       - name: Sync S3 bucket
         run: |
