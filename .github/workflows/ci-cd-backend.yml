@@ -13,7 +13,7 @@ on:
       - 'infrastructure/terraform/backend/**'
 
 jobs:
-  install-dependencies:
+  build-backend:
     runs-on: ubuntu-latest
     steps:
 
@@ -29,14 +29,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/src/requirements.txt
-  
-  code-unit-testing:
-    runs-on: ubuntu-latest
-    needs: install-dependencies
-    steps:
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
 
       - name: Run tests
         env:
@@ -46,7 +38,7 @@ jobs:
   
   create-aws-resources:
     runs-on: ubuntu-latest
-    needs: code-unit-testing
+    needs: build-backend
     steps: 
 
       - name: Configure AWS credentials
