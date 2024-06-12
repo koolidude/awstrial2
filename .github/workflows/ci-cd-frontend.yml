@@ -60,7 +60,8 @@ jobs:
         run: |
           cd infrastructure/terraform/frontend
           terraform init
-          terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}" || terraform refresh -var="branch_name=${{ github.ref_name }}"
+          terraform apply -auto-approve -var="branch_name=${{ github.ref_name }}" -var "route53_zone_id=${{ secrets.ROUTE53_ZONE_ID }}" \
+          || terraform refresh -var="branch_name=${{ github.ref_name }}" -var "route53_zone_id=${{ secrets.ROUTE53_ZONE_ID }}"
 
       - name: Fetch CloudFront OAI IAM ARN
         id: fetch-oai-arn
