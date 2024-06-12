@@ -7,3 +7,7 @@ output "cloudfront_distribution_id" {
   description = "ID of the CloudFront distribution"
   value       = aws_cloudfront_distribution.frontend.id
 }
+
+output "cloudfront_oai_iam_arn" {
+  value = aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn
+}

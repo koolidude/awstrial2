@@ -80,7 +80,7 @@ resource "aws_s3_bucket_policy" "frontend_bucket_policy" {
         Sid: "AllowCloudFrontAccess",
         Effect = "Allow",
         Principal = {
-          AWS: "arn:aws:iam::cloudfront-origin-access-identity/cloudfront-origin-access-identity-cloudfront-OAI-ID"
+          AWS: "${aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn}"
         },
         Action: "s3:GetObject",
         Resource: "arn:aws:s3:::${aws_s3_bucket.frontend.bucket}/*"
