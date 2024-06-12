@@ -49,7 +49,7 @@ resource "aws_s3_bucket" "frontend" {
 
   website {
     index_document = "index.html"
-    error_document = "error.html"  # Ensure an error document is specified
+    error_document = "error.html"
   }
 }
 
@@ -73,6 +73,15 @@ resource "aws_s3_bucket_policy" "frontend_bucket_policy" {
         Sid: "PublicReadGetObject",
         Effect = "Allow",
         Principal: "*",
+        Action: "s3:GetObject",
+        Resource: "arn:aws:s3:::${aws_s3_bucket.frontend.bucket}/*"
+      },
+      {
+        Sid: "AllowCloudFrontAccess",
+        Effect = "Allow",
+        Principal = {
+          AWS: "arn:aws:iam::cloudfront-origin-access-identity/cloudfront-origin-access-identity-cloudfront-OAI-ID"
+        },
         Action: "s3:GetObject",
         Resource: "arn:aws:s3:::${aws_s3_bucket.frontend.bucket}/*"
       }
@@ -109,6 +118,11 @@ resource "aws_route53_record" "cert_validation" {
 resource "aws_acm_certificate_validation" "frontend" {
   certificate_arn         = aws_acm_certificate.frontend.arn
   validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
+}
+
+# CloudFront Origin Access Identity
+resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
+  comment = "OAI for group-3-frontend-${var.branch_name}"
 }
 
 # CloudFront distribution for serving the frontend content
@@ -158,11 +172,6 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 }
 
-# CloudFront Origin Access Identity
-resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
-  comment = "OAI for group-3-frontend-${var.branch_name}"
-}
-
 # Route53 CNAME record pointing to CloudFront distribution
 resource "aws_route53_record" "frontend_cname" {
   zone_id = var.route53_zone_id
@@ -170,4 +179,9 @@ resource "aws_route53_record" "frontend_cname" {
   type    = "CNAME"
   ttl     = 60
   records = [aws_cloudfront_distribution.frontend.domain_name]
+}
+
+# Outputs
+output "cloudfront_distribution_id" {
+  value = aws_cloudfront_distribution.frontend.id
 }
