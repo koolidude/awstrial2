@@ -1,7 +1,8 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import requests
 from src.config import Config
+from googleapiclient.discovery import build
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -40,6 +41,17 @@ def get_movies_by_genre(genre_id):
 def search_movies(query):
     response = requests.get(f"https://api.themoviedb.org/3/search/movie?query={query}&api_key={Config.TMDB_API_KEY}")
     return jsonify(response.json())
+
+@app.route('/youtube/search/<query>')
+def search_youtube(query):
+    youtube = build('youtube', 'v3', developerKey=Config.YOUTUBE_API_KEY)
+    request = youtube.search().list(
+        q=query,
+        part='snippet',
+        maxResults=10
+    )
+    response = request.execute()
+    return jsonify(response)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

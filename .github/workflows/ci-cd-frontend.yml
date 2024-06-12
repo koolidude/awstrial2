@@ -10,12 +10,6 @@ on:
     paths:
       - 'frontend/**'
       - 'infrastructure/terraform/frontend/**'
-  # pull_request:
-  #   types: [closed]
-  #   branches:
-  #     - prod
-  #     - uat
-  #     - dev
 
 jobs:
   build-frontend:
@@ -67,6 +61,10 @@ jobs:
         id: fetch-oai-arn
         run: |
           oai_arn=$(terraform output -raw cloudfront_oai_iam_arn)
+          if [ -z "$oai_arn" ]; then
+            echo "Error: CloudFront OAI IAM ARN not found"
+            exit 1
+          fi
           echo "CLOUDFRONT_OAI_IAM_ARN=$oai_arn" >> $GITHUB_ENV
         working-directory: infrastructure/terraform/frontend
 
@@ -86,7 +84,6 @@ jobs:
 
       - name: Set S3 Bucket Policy
         run: |
-          oai_arn=$(terraform output -raw cloudfront_oai_iam_arn)
           aws s3api put-bucket-policy --bucket group-3-frontend-${{ github.ref_name }} --policy '{
             "Version": "2012-10-17",
             "Statement": [
@@ -101,7 +98,7 @@ jobs:
                 "Sid": "AllowCloudFrontAccess",
                 "Effect": "Allow",
                 "Principal": {
-                  "AWS": "'$oai_arn'"
+                  "AWS": "'"${{ env.CLOUDFRONT_OAI_IAM_ARN }}"'"
                 },
                 "Action": "s3:GetObject",
                 "Resource": "arn:aws:s3:::group-3-frontend-${{ github.ref_name }}/*"
