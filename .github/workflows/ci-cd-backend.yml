@@ -29,6 +29,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/src/requirements.txt
 
+  code-unit-test:
+    runs-on: ubuntu-latest
+    needs: build-backend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
       - name: Run tests
         env:
           PYTHONPATH: ${{ github.workspace }}/backend
