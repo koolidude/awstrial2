@@ -9,8 +9,10 @@ function App() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchedMovies, setSearchedMovies] = useState([]);
 
+    const backendUrl = process.env.REACT_APP_BACKEND_URL;
+
     useEffect(() => {
-        fetch('/movies')
+        fetch(`${backendUrl}/movies`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -20,24 +22,24 @@ function App() {
             .then(data => setMovies(data.results))
             .catch(error => console.error('Error fetching movies:', error));
 
-        fetch('/movies/top-rated')
+        fetch(`${backendUrl}/movies/top-rated`)
             .then(response => response.json())
             .then(data => setTopRatedMovies(data.results))
             .catch(error => console.error('Error fetching top-rated movies:', error));
 
-        fetch('/movies/upcoming')
+        fetch(`${backendUrl}/movies/upcoming`)
             .then(response => response.json())
             .then(data => setUpcomingMovies(data.results))
             .catch(error => console.error('Error fetching upcoming movies:', error));
 
-        fetch('/movies/genre/28')  // Assuming 28 is a genre ID for testing
+        fetch(`${backendUrl}/movies/genre/28`)  // Assuming 28 is a genre ID for testing
             .then(response => response.json())
             .then(data => setGenreMovies(data.results))
             .catch(error => console.error('Error fetching genre movies:', error));
-    }, []);
+    }, [backendUrl]);
 
     const handleSearch = () => {
-        fetch(`/movies/search/${searchQuery}`)
+        fetch(`${backendUrl}/movies/search/${searchQuery}`)
             .then(response => response.json())
             .then(data => setSearchedMovies(data.results))
             .catch(error => console.error('Error searching movies:', error));
