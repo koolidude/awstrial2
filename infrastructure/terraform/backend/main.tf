@@ -248,6 +248,10 @@ resource "aws_ecs_task_definition" "netflix_clone_task" {
         {
           name  = "SECRET_KEY"
           value = var.secret_key
+        },
+        {
+          name  = "YOUTUBE_API_KEY"
+          value = var.youtube_api_key
         }
       ]
       logConfiguration = {
@@ -405,4 +409,5 @@ resource "aws_route53_record" "cname" {
   records = [aws_lb.main.dns_name]
 }
 
+#TEST
 #TEST

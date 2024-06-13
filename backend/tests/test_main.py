@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch, Mock
 from src.main import app
 from src.config import Config
 
@@ -38,6 +39,26 @@ class MainTestCase(unittest.TestCase):
         # Assuming 'Inception' is a valid search term for testing
         result = self.app.get('/movies/search/Inception')
         self.assertEqual(result.status_code, 200)
+
+    @patch('src.main.build')
+    def test_search_youtube(self, mock_build):
+        # Mock YouTube API response
+        mock_youtube = Mock()
+        mock_search = Mock()
+        mock_list = Mock()
+
+        # Ensure the response is a dictionary, not a mock object
+        mock_list.execute.return_value = {
+            'items': [{'id': {'videoId': 'test_id'}, 'snippet': {'title': 'Test Video'}}]
+        }
+        mock_search.list.return_value = mock_list
+        mock_youtube.search.return_value = mock_search
+        mock_build.return_value = mock_youtube
+
+        # Perform the test
+        result = self.app.get('/youtube/search/godzilla')
+        self.assertEqual(result.status_code, 200)
+        self.assertIn('items', result.json)
 
 if __name__ == '__main__':
     unittest.main()

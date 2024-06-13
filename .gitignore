@@ -164,5 +164,8 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-# dump folder
+# own folder
 .dump/
+.venv/
+.__pycache__/
+.env

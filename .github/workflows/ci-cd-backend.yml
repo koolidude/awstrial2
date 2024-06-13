@@ -83,13 +83,3 @@ jobs:
       - name: Update ECS service
         run: |
           aws ecs update-service --cluster group-3-ecs-cluster-${{ github.ref_name }} --service group-3-ecs-service-${{ github.ref_name }} --force-new-deployment
-
-      - name: Get ALB URL
-        id: get-alb-url
-        run: |
-          alb_url=$(aws elbv2 describe-load-balancers --names group-3-alb-${{ github.ref_name }} --query 'LoadBalancers[0].DNSName' --output text)
-          echo "::set-output name=alb_url::$alb_url"
-
-      - name: Store ALB URL in Parameter Store
-        run: |
-          aws ssm put-parameter --name "/group-3/backend-alb-url" --value "${{ steps.get-alb-url.outputs.alb_url }}" --type "String" --overwrite
