@@ -405,5 +405,4 @@ resource "aws_route53_record" "cname" {
   records = [aws_lb.main.dns_name]
 }
 
-#TEST
-#TEST
+#test
