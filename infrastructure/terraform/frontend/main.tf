@@ -45,7 +45,7 @@ resource "aws_iam_role_policy" "s3_bucket_policy" {
 
 # Create IAM policy for managing CloudFront and Route53
 resource "aws_iam_policy" "cloudfront_route53_policy" {
-  name        = "group-3-cloudfront-route53-policy"
+  name        = "group-3-cloudfront-route53-policy-${var.branch_name}"
   description = "Policy for managing CloudFront and Route53 resources"
 
   policy = jsonencode({

@@ -3,13 +3,14 @@ import './App.css';
 
 function App() {
     const [movies, setMovies] = useState([]);
+    const [topRatedMovies, setTopRatedMovies] = useState([]);
+    const [upcomingMovies, setUpcomingMovies] = useState([]);
+    const [genreMovies, setGenreMovies] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchedMovies, setSearchedMovies] = useState([]);
-    const [youtubeVideos, setYoutubeVideos] = useState([]);
 
     useEffect(() => {
-        console.log('Fetching movies from /movies');
-        fetch(`/movies`)
+        fetch('/movies')
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -18,30 +19,28 @@ function App() {
             })
             .then(data => setMovies(data.results))
             .catch(error => console.error('Error fetching movies:', error));
+
+        fetch('/movies/top-rated')
+            .then(response => response.json())
+            .then(data => setTopRatedMovies(data.results))
+            .catch(error => console.error('Error fetching top-rated movies:', error));
+
+        fetch('/movies/upcoming')
+            .then(response => response.json())
+            .then(data => setUpcomingMovies(data.results))
+            .catch(error => console.error('Error fetching upcoming movies:', error));
+
+        fetch('/movies/genre/28')  // Assuming 28 is a genre ID for testing
+            .then(response => response.json())
+            .then(data => setGenreMovies(data.results))
+            .catch(error => console.error('Error fetching genre movies:', error));
     }, []);
 
     const handleSearch = () => {
         fetch(`/movies/search/${searchQuery}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => setSearchedMovies(data.results))
             .catch(error => console.error('Error searching movies:', error));
-    };
-
-    const handleMovieClick = (movieTitle) => {
-        fetch(`/youtube/search/${movieTitle}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => setYoutubeVideos(data.items))
-            .catch(error => console.error('Error fetching YouTube videos:', error));
     };
 
     return (
@@ -57,35 +56,63 @@ function App() {
                 <button onClick={handleSearch}>Search</button>
             </header>
             <main>
+                <h2>Popular Movies</h2>
                 <div className="movies">
                     {movies.map(movie => (
-                        <div key={movie.id} className="movie" onClick={() => handleMovieClick(movie.title)}>
-                            <h2>{movie.title}</h2>
+                        <div key={movie.id} className="movie-card">
                             <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} />
+                            <div className="movie-info">
+                                <h3>{movie.title}</h3>
+                                <p>Rating: {movie.vote_average}</p>
+                            </div>
                         </div>
                     ))}
                 </div>
-                <div className="searched-movies">
+                <h2>Top Rated Movies</h2>
+                <div className="movies">
+                    {topRatedMovies.map(movie => (
+                        <div key={movie.id} className="movie-card">
+                            <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} />
+                            <div className="movie-info">
+                                <h3>{movie.title}</h3>
+                                <p>Rating: {movie.vote_average}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <h2>Upcoming Movies</h2>
+                <div className="movies">
+                    {upcomingMovies.map(movie => (
+                        <div key={movie.id} className="movie-card">
+                            <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} />
+                            <div className="movie-info">
+                                <h3>{movie.title}</h3>
+                                <p>Release Date: {movie.release_date}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <h2>Genre Movies</h2>
+                <div className="movies">
+                    {genreMovies.map(movie => (
+                        <div key={movie.id} className="movie-card">
+                            <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} />
+                            <div className="movie-info">
+                                <h3>{movie.title}</h3>
+                                <p>Rating: {movie.vote_average}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <h2>Searched Movies</h2>
+                <div className="movies">
                     {searchedMovies.map(movie => (
-                        <div key={movie.id} className="movie" onClick={() => handleMovieClick(movie.title)}>
-                            <h2>Searched Movie: {movie.title}</h2>
+                        <div key={movie.id} className="movie-card">
                             <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} />
-                        </div>
-                    ))}
-                </div>
-                <div className="youtube-videos">
-                    {youtubeVideos.map(video => (
-                        <div key={video.id.videoId} className="youtube-video">
-                            <h2>{video.snippet.title}</h2>
-                            <iframe
-                                width="560"
-                                height="315"
-                                src={`https://www.youtube.com/embed/${video.id.videoId}`}
-                                title={video.snippet.title}
-                                frameBorder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                            ></iframe>
+                            <div className="movie-info">
+                                <h3>{movie.title}</h3>
+                                <p>Rating: {movie.vote_average}</p>
+                            </div>
                         </div>
                     ))}
                 </div>

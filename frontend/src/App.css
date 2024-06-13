@@ -1,6 +1,9 @@
 /* src/App.css */
 .App {
   text-align: center;
+  background: url('./images/background.webp') no-repeat center center fixed;
+  background-size: cover;
+  color: #fff;
 }
 
 .App-logo {
@@ -9,8 +12,8 @@
 }
 
 .App-header {
-  background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent background for better contrast */
-  min-height: 100vh;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -19,50 +22,55 @@
   color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.App-header input {
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: none;
+  margin-right: 10px;
+}
+
+.App-header button {
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  background-color: #61dafb;
+  color: #282c34;
 }
 
 .movies {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  padding: 20px;
 }
 
-.movie {
-  margin: 20px;
-  cursor: pointer;
-}
-
-.movie img {
-  max-width: 200px;
-  border: 2px solid white;
-}
-
-.youtube-videos {
-  margin-top: 20px;
-}
-
-.video {
-  margin: 20px;
-}
-
-input[type="text"] {
-  padding: 10px;
+.movie-card {
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 10px;
   margin: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  overflow: hidden;
+  width: 200px;
+  color: #fff;
 }
 
-button {
-  padding: 10px 20px;
-  background-color: #61dafb;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+.movie-card img {
+  width: 100%;
+  height: auto;
 }
 
-button:hover {
-  background-color: #21a1f1;
+.movie-info {
+  padding: 10px;
+}
+
+.movie-info h3 {
+  font-size: 1.2em;
+  margin: 0;
+}
+
+.movie-info p {
+  font-size: 0.9em;
+  margin: 5px 0 0 0;
 }

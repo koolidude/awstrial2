@@ -1,76 +1,66 @@
+// src/App.test.js
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import React from 'react';
-import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import App from './App';
 
-// Mock the fetch function to return sample data for the movies endpoint
 beforeEach(() => {
-  global.fetch = jest.fn((url) => {
-    if (url === `/movies`) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ results: [{ id: 1, title: 'Movie Title', poster_path: '/path/to/poster.jpg' }] }),
-      });
-    } else if (url.startsWith(`/movies/search/`)) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ results: [{ id: 2, title: 'Searched Movie', poster_path: '/path/to/searched_movie.jpg' }] }),
-      });
-    } else if (url.startsWith(`/youtube/search/`)) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ items: [{ id: { videoId: 'abc123' }, snippet: { title: 'Test Video' } }] }),
-      });
-    } else {
-      return Promise.reject(new Error('Unknown URL'));
-    }
-  });
-});
-
-afterEach(() => {
-  jest.resetAllMocks();
-});
-
-test('renders Netflix Clone header', () => {
-  render(<App />);
-  const headerElement = screen.getByText(/Netflix Clone/i);
-  expect(headerElement).toBeInTheDocument();
+  fetch.resetMocks();
 });
 
 test('fetches and displays movies', async () => {
+  fetch.mockResponseOnce(JSON.stringify({ results: [{ title: 'Movie 1' }, { title: 'Movie 2' }] }));
+
   render(<App />);
-  const movieElement = await waitFor(() => screen.getByText(/Movie Title/i));
-  expect(movieElement).toBeInTheDocument();
+
+  const popularMoviesElement = await waitFor(() => screen.getByText(/Popular Movies/i));
+  expect(popularMoviesElement).toBeInTheDocument();
+  expect(screen.getByText('Movie 1')).toBeInTheDocument();
+  expect(screen.getByText('Movie 2')).toBeInTheDocument();
+});
+
+test('fetches and displays top rated movies', async () => {
+  fetch.mockResponseOnce(JSON.stringify({ results: [{ title: 'Top Rated Movie 1' }, { title: 'Top Rated Movie 2' }] }));
+
+  render(<App />);
+
+  const topRatedMoviesElement = await waitFor(() => screen.getByText(/Top Rated Movies/i));
+  expect(topRatedMoviesElement).toBeInTheDocument();
+  expect(screen.getByText('Top Rated Movie 1')).toBeInTheDocument();
+  expect(screen.getByText('Top Rated Movie 2')).toBeInTheDocument();
+});
+
+test('fetches and displays upcoming movies', async () => {
+  fetch.mockResponseOnce(JSON.stringify({ results: [{ title: 'Upcoming Movie 1' }, { title: 'Upcoming Movie 2' }] }));
+
+  render(<App />);
+
+  const upcomingMoviesElement = await waitFor(() => screen.getByText(/Upcoming Movies/i));
+  expect(upcomingMoviesElement).toBeInTheDocument();
+  expect(screen.getByText('Upcoming Movie 1')).toBeInTheDocument();
+  expect(screen.getByText('Upcoming Movie 2')).toBeInTheDocument();
+});
+
+test('fetches and displays genre movies', async () => {
+  fetch.mockResponseOnce(JSON.stringify({ results: [{ title: 'Genre Movie 1' }, { title: 'Genre Movie 2' }] }));
+
+  render(<App />);
+
+  const genreMoviesElement = await waitFor(() => screen.getByText(/Genre Movies/i));
+  expect(genreMoviesElement).toBeInTheDocument();
+  expect(screen.getByText('Genre Movie 1')).toBeInTheDocument();
+  expect(screen.getByText('Genre Movie 2')).toBeInTheDocument();
 });
 
 test('fetches and displays searched movies', async () => {
+  fetch.mockResponseOnce(JSON.stringify({ results: [{ title: 'Searched Movie 1' }, { title: 'Searched Movie 2' }] }));
+
   render(<App />);
-  const searchInput = screen.getByPlaceholderText(/Search movies/i);
 
-  await act(async () => {
-    fireEvent.change(searchInput, { target: { value: 'Inception' } });
-    fireEvent.click(screen.getByText(/Search/i));
-  });
+  const searchInput = screen.getByPlaceholderText(/Search movies.../i);
+  fireEvent.change(searchInput, { target: { value: 'Searched' } });
 
-  const searchedMovieElement = await waitFor(() => screen.getByText(/Searched Movie: Searched Movie/i));
-  expect(searchedMovieElement).toBeInTheDocument();
-});
-
-test('fetches and displays YouTube search results', async () => {
-  render(<App />);
-  const searchInput = screen.getByPlaceholderText(/Search movies/i);
-
-  await act(async () => {
-    fireEvent.change(searchInput, { target: { value: 'Inception' } });
-    fireEvent.click(screen.getByText(/Search/i));
-  });
-
-  const searchedMovieElement = await waitFor(() => screen.getByText(/Searched Movie: Searched Movie/i));
-
-  await act(async () => {
-    fireEvent.click(searchedMovieElement);
-  });
-
-  const youtubeVideoElement = await waitFor(() => screen.getByText(/Test Video/i));
-  expect(youtubeVideoElement).toBeInTheDocument();
+  const searchedMoviesElement = await waitFor(() => screen.getByText(/Searched Movies/i));
+  expect(searchedMoviesElement).toBeInTheDocument();
+  expect(screen.getByText('Searched Movie 1')).toBeInTheDocument();
+  expect(screen.getByText('Searched Movie 2')).toBeInTheDocument();
 });
