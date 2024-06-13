@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch, Mock
 from src.main import app
 from src.config import Config
 
@@ -39,8 +40,21 @@ class MainTestCase(unittest.TestCase):
         result = self.app.get('/movies/search/Inception')
         self.assertEqual(result.status_code, 200)
 
-    def test_search_youtube(self):
-        # Assuming 'godzilla' is a valid search term for testing
+    @patch('src.main.build')
+    def test_search_youtube(self, mock_build):
+        # Mock YouTube API response
+        mock_youtube = Mock()
+        mock_search = Mock()
+        mock_list = Mock()
+        mock_execute = Mock()
+        
+        mock_execute.return_value = {'items': [{'id': 'test_id', 'snippet': {'title': 'Test Video'}}]}
+        mock_list.return_value = mock_execute
+        mock_search.list.return_value = mock_list
+        mock_youtube.search.return_value = mock_search
+        mock_build.return_value = mock_youtube
+
+        # Perform the test
         result = self.app.get('/youtube/search/godzilla')
         self.assertEqual(result.status_code, 200)
         self.assertIn('items', result.json)
