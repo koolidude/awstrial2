@@ -5,20 +5,18 @@ import App from './App';
 
 // Mock the fetch function to return sample data for the movies endpoint
 beforeEach(() => {
-  process.env.REACT_APP_BACKEND_URL = 'https://mock-backend-url.com:5000';
-
   global.fetch = jest.fn((url) => {
-    if (url === `${process.env.REACT_APP_BACKEND_URL}/movies`) {
+    if (url === `/movies`) {
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve({ results: [{ id: 1, title: 'Movie Title', poster_path: '/path/to/poster.jpg' }] }),
       });
-    } else if (url.startsWith(`${process.env.REACT_APP_BACKEND_URL}/movies/search/`)) {
+    } else if (url.startsWith(`/movies/search/`)) {
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve({ results: [{ id: 2, title: 'Searched Movie', poster_path: '/path/to/searched_movie.jpg' }] }),
       });
-    } else if (url.startsWith(`${process.env.REACT_APP_BACKEND_URL}/youtube/search/`)) {
+    } else if (url.startsWith(`/youtube/search/`)) {
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve({ items: [{ id: { videoId: 'abc123' }, snippet: { title: 'Test Video' } }] }),

@@ -8,9 +8,8 @@ function App() {
     const [youtubeVideos, setYoutubeVideos] = useState([]);
 
     useEffect(() => {
-        const backendUrl = process.env.REACT_APP_BACKEND_URL;
-        console.log('Backend URL:', backendUrl);
-        fetch(`${backendUrl}/movies`)
+        console.log('Fetching movies from /movies');
+        fetch(`/movies`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -22,17 +21,25 @@ function App() {
     }, []);
 
     const handleSearch = () => {
-        const backendUrl = process.env.REACT_APP_BACKEND_URL;
-        fetch(`${backendUrl}/movies/search/${searchQuery}`)
-            .then(response => response.json())
+        fetch(`/movies/search/${searchQuery}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => setSearchedMovies(data.results))
             .catch(error => console.error('Error searching movies:', error));
     };
 
-    const handleMovieClick = (movieId) => {
-        const backendUrl = process.env.REACT_APP_BACKEND_URL;
-        fetch(`${backendUrl}/youtube/search/${movieId}`)
-            .then(response => response.json())
+    const handleMovieClick = (movieTitle) => {
+        fetch(`/youtube/search/${movieTitle}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => setYoutubeVideos(data.items))
             .catch(error => console.error('Error fetching YouTube videos:', error));
     };
@@ -52,7 +59,7 @@ function App() {
             <main>
                 <div className="movies">
                     {movies.map(movie => (
-                        <div key={movie.id} className="movie" onClick={() => handleMovieClick(movie.id)}>
+                        <div key={movie.id} className="movie" onClick={() => handleMovieClick(movie.title)}>
                             <h2>{movie.title}</h2>
                             <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} />
                         </div>
@@ -60,7 +67,7 @@ function App() {
                 </div>
                 <div className="searched-movies">
                     {searchedMovies.map(movie => (
-                        <div key={movie.id} className="movie" onClick={() => handleMovieClick(movie.id)}>
+                        <div key={movie.id} className="movie" onClick={() => handleMovieClick(movie.title)}>
                             <h2>Searched Movie: {movie.title}</h2>
                             <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} />
                         </div>
