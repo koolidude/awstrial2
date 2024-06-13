@@ -39,5 +39,11 @@ class MainTestCase(unittest.TestCase):
         result = self.app.get('/movies/search/Inception')
         self.assertEqual(result.status_code, 200)
 
+    def test_search_youtube(self):
+        # Assuming 'godzilla' is a valid search term for testing
+        result = self.app.get('/youtube/search/godzilla')
+        self.assertEqual(result.status_code, 200)
+        self.assertIn('items', result.json)
+
 if __name__ == '__main__':
     unittest.main()
