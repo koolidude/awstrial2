@@ -8,8 +8,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-image: url('./image/background.webp');
   background-size: cover;
-  background-repeat: no-repeat;
-  color: #fff; /* Ensure text is readable */
+  color: white; /* Ensure text color is visible on the background */
 }
 
 code {
