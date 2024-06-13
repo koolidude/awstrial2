@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from flask import Flask
-from main import app
+from src.main import app
 
 class NetflixCloneAPITestCase(unittest.TestCase):
     def setUp(self):
