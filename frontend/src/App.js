@@ -40,11 +40,19 @@ function App() {
 
     const handleSearch = () => {
         fetch(`${backendUrl}/movies/search/${searchQuery}`)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => setSearchedMovies(data.results))
-            .catch(error => console.error('Error searching movies:', error));
+            .catch(error => {
+                console.error('Error searching movies:', error);
+                error.json().then(errorMessage => console.error('Detailed error message:', errorMessage));
+            });
     };
-
+    
     return (
         <div className="App">
             <header className="App-header">
