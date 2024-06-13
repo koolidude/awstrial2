@@ -47,10 +47,12 @@ class MainTestCase(unittest.TestCase):
         mock_search = Mock()
         mock_list = Mock()
         mock_execute = Mock()
-        
+
         # Ensure the response is a dictionary, not a mock object
-        mock_execute.return_value = {'items': [{'id': 'test_id', 'snippet': {'title': 'Test Video'}}]}
-        mock_list.return_value = mock_execute
+        mock_execute.return_value = {
+            'items': [{'id': {'videoId': 'test_id'}, 'snippet': {'title': 'Test Video'}}]
+        }
+        mock_list.return_value.execute = mock_execute
         mock_search.list.return_value = mock_list
         mock_youtube.search.return_value = mock_search
         mock_build.return_value = mock_youtube
