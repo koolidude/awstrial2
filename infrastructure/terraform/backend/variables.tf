@@ -17,3 +17,8 @@ variable "route53_zone_id" {
   description = "The ID of the Route 53 hosted zone"
   type        = string
 }
+
+variable "youtube_api_key" {
+  description = "YOUTUBE API Key"
+  type        = string
+}
