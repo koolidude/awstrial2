@@ -168,3 +168,4 @@ dist
 .dump/
 .venv/
 .__pycache__/
+.env

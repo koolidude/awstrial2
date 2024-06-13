@@ -5,6 +5,7 @@ import App from './App';
 
 beforeEach(() => {
   fetch.resetMocks();
+  process.env.REACT_APP_BACKEND_URL = 'http://mock-backend-url'; // Set the environment variable for testing
 });
 
 test('fetches and displays movies', async () => {
