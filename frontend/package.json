@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "axios": "^1.7.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-scripts": "4.0.3",
+    "react-spinners": "^0.13.8",
     "web-vitals": "^1.0.1"
   },
   "scripts": {
@@ -16,8 +18,7 @@
   },
   "eslintConfig": {
     "extends": [
-      "react-app",
-      "react-app/jest"
+      "react-app"
     ]
   },
   "browserslist": {
@@ -36,6 +37,18 @@
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/react": "^12.1.5",
-    "jest-fetch-mock": "^3.0.3"
+    "jest-fetch-mock": "^3.0.3",
+    "react-router-dom": "^6.23.1"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.(js|jsx|ts|tsx)$": "babel-jest"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!axios)"
+    ],
+    "moduleNameMapper": {
+      "\\.(css|less|scss|sass)$": "identity-obj-proxy"
+    }
   }
 }

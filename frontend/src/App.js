@@ -1,134 +1,100 @@
-import React, { useEffect, useState } from 'react';
+// src/App.js
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import './App.css';
+import { searchMovies } from './api';
+import SearchBar from './components/SearchBar';
+import MovieList from './components/MovieList';
+import TopRatedMovies from './components/TopRatedMovies';
+import UpcomingMovies from './components/UpcomingMovies';
+import GenreMovies from './components/GenreMovies';
+import NavigationTabs from './components/NavigationTabs';
+import LoadingSpinner from './components/LoadingSpinner';
+
+const genres = [
+  { id: 28, name: 'Action' },
+  { id: 16, name: 'Animated' },
+  { id: 99, name: 'Documentary' },
+  { id: 18, name: 'Drama' },
+  { id: 10751, name: 'Family' },
+  { id: 14, name: 'Fantasy' },
+  { id: 36, name: 'History' },
+  { id: 35, name: 'Comedy' },
+  { id: 10752, name: 'War' },
+  { id: 80, name: 'Crime' },
+  { id: 10402, name: 'Music' },
+  { id: 9648, name: 'Mystery' },
+  { id: 10749, name: 'Romance' },
+  { id: 878, name: 'Sci-Fi' },
+  { id: 27, name: 'Horror' },
+  { id: 10770, name: 'TV Movie' },
+  { id: 53, name: 'Thriller' },
+  { id: 37, name: 'Western' },
+  { id: 12, name: 'Adventure' }
+];
 
 function App() {
-    const [movies, setMovies] = useState([]);
-    const [topRatedMovies, setTopRatedMovies] = useState([]);
-    const [upcomingMovies, setUpcomingMovies] = useState([]);
-    const [genreMovies, setGenreMovies] = useState([]);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [searchedMovies, setSearchedMovies] = useState([]);
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    const backendUrl = process.env.REACT_APP_BACKEND_URL;
-
-    useEffect(() => {
-        fetch(`${backendUrl}/movies`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => setMovies(data.results))
-            .catch(error => console.error('Error fetching movies:', error));
-
-        fetch(`${backendUrl}/movies/top-rated`)
-            .then(response => response.json())
-            .then(data => setTopRatedMovies(data.results))
-            .catch(error => console.error('Error fetching top-rated movies:', error));
-
-        fetch(`${backendUrl}/movies/upcoming`)
-            .then(response => response.json())
-            .then(data => setUpcomingMovies(data.results))
-            .catch(error => console.error('Error fetching upcoming movies:', error));
-
-        fetch(`${backendUrl}/movies/genre/28`)  // Assuming 28 is a genre ID for testing
-            .then(response => response.json())
-            .then(data => setGenreMovies(data.results))
-            .catch(error => console.error('Error fetching genre movies:', error));
-    }, [backendUrl]);
-
-    const handleSearch = () => {
-        fetch(`${backendUrl}/movies/search/${searchQuery}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => setSearchedMovies(data.results))
-            .catch(error => {
-                console.error('Error searching movies:', error);
-                error.json().then(errorMessage => console.error('Detailed error message:', errorMessage));
-            });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await searchMovies('Avengers');
+        setMovies(data.results);
+        setError(null);
+      } catch (error) {
+        setError('Error fetching initial movies.');
+      } finally {
+        setLoading(false);
+      }
     };
-    
-    return (
-        <div className="App">
-            <header className="App-header">
-                <h1>Netflix Clone</h1>
-                <input
-                    type="text"
-                    placeholder="Search movies..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <button onClick={handleSearch}>Search</button>
-            </header>
-            <main>
-                <h2>Popular Movies</h2>
-                <div className="movies">
-                    {movies.map(movie => (
-                        <div key={movie.id} className="movie-card">
-                            <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} />
-                            <div className="movie-info">
-                                <h3>{movie.title}</h3>
-                                <p>Rating: {movie.vote_average}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                <h2>Top Rated Movies</h2>
-                <div className="movies">
-                    {topRatedMovies.map(movie => (
-                        <div key={movie.id} className="movie-card">
-                            <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} />
-                            <div className="movie-info">
-                                <h3>{movie.title}</h3>
-                                <p>Rating: {movie.vote_average}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                <h2>Upcoming Movies</h2>
-                <div className="movies">
-                    {upcomingMovies.map(movie => (
-                        <div key={movie.id} className="movie-card">
-                            <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} />
-                            <div className="movie-info">
-                                <h3>{movie.title}</h3>
-                                <p>Release Date: {movie.release_date}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                <h2>Genre Movies</h2>
-                <div className="movies">
-                    {genreMovies.map(movie => (
-                        <div key={movie.id} className="movie-card">
-                            <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} />
-                            <div className="movie-info">
-                                <h3>{movie.title}</h3>
-                                <p>Rating: {movie.vote_average}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                <h2>Searched Movies</h2>
-                <div className="movies">
-                    {searchedMovies.map(movie => (
-                        <div key={movie.id} className="movie-card">
-                            <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} />
-                            <div className="movie-info">
-                                <h3>{movie.title}</h3>
-                                <p>Rating: {movie.vote_average}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </main>
-        </div>
-    );
+
+    fetchData();
+  }, []);
+
+  const handleSearch = async (query) => {
+    try {
+      setLoading(true);
+      const data = await searchMovies(query);
+      setMovies(data.results);
+      setError(null);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Router>
+      <div className="App">
+        <header className="App-header">
+          <h1>Netflix Clone</h1>
+          <NavigationTabs genres={genres} />
+          <SearchBar onSearch={handleSearch} />
+        </header>
+        <main>
+          <LoadingSpinner loading={loading} />
+          {error && <div className="error">{error}</div>}
+          <Routes>
+            <Route path="/" element={<MovieList movies={movies} />} />
+            <Route path="/top-rated" element={<TopRatedMovies />} />
+            <Route path="/upcoming" element={<UpcomingMovies />} />
+            {genres.map((genre) => (
+              <Route
+                key={genre.id}
+                path={`/genre/${genre.id}`}
+                element={<GenreMovies genreId={genre.id} />}
+              />
+            ))}
+          </Routes>
+        </main>
+      </div>
+    </Router>
+  );
 }
 
 export default App;

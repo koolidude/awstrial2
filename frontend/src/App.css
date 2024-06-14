@@ -3,57 +3,85 @@
   text-align: center;
   background: url('./images/background.webp') no-repeat center center fixed;
   background-size: cover;
-  color: #fff;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+  color: #ffffff;
 }
 
 .App-header {
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: #141414; /* Netflix dark background */
   padding: 20px;
+  color: #e50914; /* Netflix red */
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
 }
 
-.App-header input {
-  padding: 10px;
-  font-size: 16px;
-  border-radius: 5px;
-  border: none;
-  margin-right: 10px;
-}
-
-.App-header button {
-  padding: 10px;
-  font-size: 16px;
-  border-radius: 5px;
-  border: none;
-  cursor: pointer;
-  background-color: #61dafb;
-  color: #282c34;
-}
-
-.movies {
+.navigation-tabs {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  padding: 20px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  background-color: #141414; /* Netflix dark background */
+}
+
+.navigation-tabs a {
+  margin: 0 15px;
+  padding: 10px 20px;
+  text-decoration: none;
+  color: #ffffff;
+  background-color: #333333; /* Dark background for tabs */
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.navigation-tabs a:hover,
+.navigation-tabs a.active {
+  background-color: #e50914; /* Netflix red */
+  color: #ffffff;
+}
+
+.search-bar {
+  margin: 20px 0;
+}
+
+.search-bar input {
+  padding: 10px;
+  font-size: 16px;
+  width: 200px;
+  border: 1px solid #e50914;
+  border-radius: 5px;
+  background-color: #333333;
+  color: #ffffff;
+}
+
+.search-bar button {
+  padding: 10px;
+  font-size: 16px;
+  margin-left: 10px;
+  background-color: #e50914;
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.search-bar button:hover {
+  background-color: #ff0a16;
+}
+
+.movie-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .movie-card {
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: #141414; /* Netflix dark background */
   border-radius: 10px;
   margin: 10px;
   overflow: hidden;
   width: 200px;
-  color: #fff;
+  color: #ffffff;
 }
 
 .movie-card img {
@@ -65,12 +93,33 @@
   padding: 10px;
 }
 
-.movie-info h3 {
-  font-size: 1.2em;
-  margin: 0;
+.error {
+  color: #e50914; /* Netflix red */
+  margin: 20px;
 }
 
-.movie-info p {
-  font-size: 0.9em;
-  margin: 5px 0 0 0;
+/* src/components/LoadingSpinner.css */
+.loading-spinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.spinner {
+  border: 16px solid #f3f3f3;
+  border-top: 16px solid #e50914; /* Netflix red */
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
